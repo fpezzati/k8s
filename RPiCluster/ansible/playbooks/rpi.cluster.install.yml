@@ -1,0 +1,44 @@
+---
+
+- hosts: rpi.k8s.cluster
+  tasks:
+  - name: download docker install script from get.docker.com
+    ansible.builtin.get_url:
+      url: http://get.docker.com
+      dest: /tmp/get-docker.sh
+  - name: Changing perm of "/tmp/get-docker.sh", adding "+x"
+    ansible.builtin.file:
+      path: /tmp/get-docker.sh
+      mode: '1777'
+  - name: run docker install script
+    ansible.builtin.shell: /tmp/get-docker.sh
+  - name: Create docker group
+    group:
+      name: "docker"
+      state: present
+    become: yes
+  - name: Add user 'pi' to docker group
+    user:
+      name: "pi"
+      groups: "docker"
+      append: "yes"
+    become: yes
+  - name: install pip3 because of docker-compose
+    apt:
+      name: python3-pip
+    become: yes
+  - name: install docker-compose
+    ansible.builtin.shell: pip3 install docker-compose
+    become: yes
+  - name: check docker is installed correctly
+    ansible.builtin.shell: docker run hello-world
+  - name: add kubernetes repository
+    ansible.builtin.apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      filename: /etc/apt/sources.list.d/kubernetes.list
+    become: yes
+  - name: install kubeadm
+    ansible.builtin.apt:
+      name: kubeadm
+      update_cache: yes
+    become: yes

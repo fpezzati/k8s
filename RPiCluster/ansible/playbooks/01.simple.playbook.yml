@@ -1,0 +1,14 @@
+---
+
+- hosts: rpi.k8s.cluster
+  become: true
+  tasks:
+  - name: update apt index
+    apt:
+      update_cache: yes
+  - name: update distro
+    apt:
+      name: 
+  - name: install kubernetes
+    apt:
+      name: kubernetes

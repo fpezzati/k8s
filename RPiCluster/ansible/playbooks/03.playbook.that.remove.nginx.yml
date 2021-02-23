@@ -1,0 +1,14 @@
+---
+
+- hosts: rpi.k8s.cluster
+  become: true
+  tasks:
+  - name: stop nginx
+    service:
+      name: nginx
+      state: stopped
+    ignore_errors: yes
+  - name: remove nginx
+    apt:
+      name: nginx
+      state: absent

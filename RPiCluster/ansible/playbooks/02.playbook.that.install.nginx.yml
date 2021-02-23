@@ -1,0 +1,9 @@
+---
+
+- hosts: rpi.k8s.cluster
+  become: true
+  tasks:
+  - name: install nginx
+    apt:
+      name: nginx
+      state: latest
