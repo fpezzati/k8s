@@ -105,3 +105,30 @@ minikube addons enable registry
 minikube addons enable heapster
 ```
 What are addons and what are those I have (not yet to be honest) enabled? `ingress` manages external http/https access to the cluster (do I access cluster throught service too? boh..). `registry` should be a credentials manager to pull docker images from private registries.. I think. `heapster` has been retired, I guess it was a monitoring tool.. Well, I don't need it anymore.
+
+So minikube is my cluster (single node, lots of pods) for now. Let's deploy:
+- create an image of something (see ./dummy.nginx.app/Dockerfile) by running `docker build -t dummy_nginx .`,
+- create deploy docs for kubernetes (see ./dummy.nginx.app/deployment/deployment.yaml and service.yaml).
+To make it VERY simple: `deployment.yaml` tells which images deployed containers will run, `service.yaml` tells which port cluster expose outside and which port it pair inside the cluster. By running:
+```
+fpezzati@oem-OMEN-by-HP-Laptop-15-ce0xx dummy.ngnix.app (master) $ kubectl create -f deployment/
+Error from server (Invalid): error when creating "deployment/service.yaml": Service "dummy_nginx" is invalid: metadata.name: Invalid value: "dummy_nginx": a DNS-1035 label must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character (e.g. 'my-name',  or 'abc-123', regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?')
+unable to recognize "deployment/deployment.yaml": no matches for kind "Deployment" in version "v1"
+```
+you get some errors. You can't use `_` in names. Moreover `kind` is case sensitive and `apiVersion` in the deployment file should be `apps/v1`. You have to be careful. And you eventually have some errors because of already created services/pods/whatever in the previous attempts.
+
+Uh oh I did something wrong my cluster is not going up again... I'll destroy it and start again. I run `minikube delete -p dummycluster` to remove existing dummycluster cluster.
+
+Still wrong. Never a win at first try.. Image was wrong and now I am stuck with a cluster hosting a wrong image, that's why dashboard shows everything red. Now I can throw away the cluster or update the image specified in the deployment document.
+
+Don't want to trash my cluster, I'll update images. Easiest way: build again my image with a different tag (to see that the cool way: I will deliver a newer version):
+```
+kubectl set image deployment/dummy-nginx dummy-nginx=dummy-nginx:1.0
+```
+No better. Pod's log tells he was unable to pull the image... It is because minikube searches for images on docker hub by default..
+
+Interesting solution (I have to investigate) about using a private registry here: https://stackoverflow.com/questions/42564058/how-to-use-local-docker-images-with-minikube (see Fahad answer).
+
+Btw I use command `minikube cache add dummy-nginx:1.0` to put minikube aware of my image. It worked, but I struggle some time to find which ip:port I have to use to access my service (and so my app) in the cluster. For example, command `kubectl get service -o yaml` gives me back a lot of info but not the ip I need (another ip instead). Using `minikube service list -p dummycluster` instead prints a nice view of services indicating which ip and port are exposed by whom. There I find the ip I need to reach my dummy app.
+
+Ok, my dummycluster works.
