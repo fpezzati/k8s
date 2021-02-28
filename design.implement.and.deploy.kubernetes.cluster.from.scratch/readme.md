@@ -132,3 +132,79 @@ Interesting solution (I have to investigate) about using a private registry here
 Btw I use command `minikube cache add dummy-nginx:1.0` to put minikube aware of my image. It worked, but I struggle some time to find which ip:port I have to use to access my service (and so my app) in the cluster. For example, command `kubectl get service -o yaml` gives me back a lot of info but not the ip I need (another ip instead). Using `minikube service list -p dummycluster` instead prints a nice view of services indicating which ip and port are exposed by whom. There I find the ip I need to reach my dummy app.
 
 Ok, my dummycluster works.
+
+## k8s architecture
+```
++master node(s)
+|-kubecontroller-manager
+|-+kube-apiserver: here resources are published (resources may have the form label - url)
+| |-etcd: an in-memory map used to store api-server resources
+|-kube-scheduler: is in charge to deliver requests to workers or resources
+|-cloud-controller-manager: a connector to provider hosted clusters (say AWS for example)
+
++worker node(s)
+|-kubelet: starts containers in node
+|-kube-proxy: keeps track of containers among pods or other components
+```
+### Services and Pods
+Services are usually used to allow comunication among Pods. Services host selector while Pods have labels, so Services applies something that are bound to Pods matching by labels. For example, service
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: dummy-nginx
+spec:
+  selector:
+    app: dummy-nginx
+...
+```
+applies to:
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-nginx
+spec:
+  selector:
+    matchLabels:
+      app: dummy-nginx
+...
+```
+because labels match. Pods came in three flavours:
+- init container,
+- sidecar container (have a secondary role, bring feature to app pods, i.e: a log collector),
+- app container (a main actor in application architecture, i.e.: a web server).
+
+Pods are organized in replicaset and daemonset. Replicaset is in charge to keep a certain number of pods hosting an application (or a piece of that application) at any time. Daemonset is in charge to keep a certain number of copies of a pod on every worker node.
+
+Statefulset pods: are pods who have to satisfy some constraints like startup or teardown order, having a specific pod name, stay bound to a specific storage.
+
+### Job and Cronjob
+Well, guess what they do, they do on pods.
+
+### Ingress
+Ingress is mainly the component implementing service discovery and loadbalancing.
+
+### ConfigMap
+Stores non confidential data in a dictionary. Allows to separate configuration from pods or other components.
+
+### Secret
+
+### Persistent Volumes & Persistent Volume Claims
+
+### NameSpaces
+
+### Manifest files
+In ./deployment folder there are two manifest files. A manifest file tells characteristics that a k8s component (a service, a set of pods, whatever) must offer in a cluster. A manifest ususally has the following attributes:
+- apiVersion: indicates group and version of the manifest (i.e.: apps/v1). You can get a full list of available values by running `kubectl api-versions`,
+- kind
+- metadata
+- spec
+
+### Kubectl
+The main tool to interact with k8s clusters. Kubectl behavior is configured by its config file (~/.kube/config).
+
+I can switch context by running `kubectl config use-context some context` to switch kubectl on another cluster.
+
+## Helm package manager
+Helm is an advanced deployment tools that collects and define interaction between cluster components by aggregating manifest files in a chart. The wording 'package manager for kubernetes' is quite misleading I think. Helm helps in managing the cluster. You can also download existing charts. Helm bundles manifest files and charts in a chart to make deployment easy. Having a lot of manifests or existing charts Helm is a must-to-have tool.

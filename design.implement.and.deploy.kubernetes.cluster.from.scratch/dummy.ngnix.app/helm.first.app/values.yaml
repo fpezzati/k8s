@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  repository: first-app
+  tag: v1
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 80
+
+ingress:
+  enabled: false
+  annotations: {}
+  path: /
+  hosts:
+    - first-app.192.168.99.100.nip.io
+  tls: []
