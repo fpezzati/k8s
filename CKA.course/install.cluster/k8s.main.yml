@@ -1,0 +1,10 @@
+---
+- hosts: rpi.k8s.node
+  vars:
+    k8s_version: 1.20
+  roles:
+    - docker
+    - simple.node
+- hosts: rpi.k8s.master
+  roles:
+    - master.node

@@ -146,6 +146,10 @@ Ok, my dummycluster works.
 |-kubelet: starts containers in node
 |-kube-proxy: keeps track of containers among pods or other components
 ```
+
+### kube-proxy
+It is a pod that runs on each node which is in charge to manage network traffic. kube-proxy handles services.
+
 ### Services and Pods
 Services are usually used to allow comunication among Pods. Services host selector while Pods have labels, so Services applies something that are bound to Pods matching by labels. For example, service
 ```

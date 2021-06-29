@@ -1,0 +1,32 @@
+# k8s node needs:
+# - docker
+# - kubelet
+# - kubeadm
+# kubelet must be started
+---
+- name: update apt and install required tools
+  apt:
+    pkg:
+      - apt-transport-https
+      - curl
+    state: present
+    update_cache: true
+  become: yes
+- name: add k8s repos to apt
+  ansible.builtin.shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  become: yes
+- name: turn memory swap off before install kubeadm
+  ansible.builtin.shell: swapoff -a
+  become: yes
+- name: update once again apt with the new repos and install kubelet kubeadm
+  apt:
+    pkg:
+      - kubelet={{ k8s_version }}
+      - kubeadm={{ k8s_version }}
+    update_cache: true
+  become: yes
+- name: enable and start kubelet
+  ansible.builtin.systemd:
+    state: started
+    name: kubelet
+  become: yes

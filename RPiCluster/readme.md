@@ -111,6 +111,8 @@ sudo apt install ansible
 and you get ansible.
 
 ## Trying Ansible
+Why Ansible? Because I am not a shell-scripting black belt and because Ansible has some good features about code reuse and modularity. It could be a good tool to have in my belt, let's try.
+
 Generate a RSA key pair (already done) and copy the .pub one on each RPi:
 ```
 scp /home/fpezzati/.ssh/id_rsa.pub pi@nestor1:~/.ssh/authorized_keys
@@ -224,13 +226,44 @@ You can specify a group of your inventory file as `hosts` value.
 
 Ok, my playbook is complete. It's a trivial one, I'll try to translate into roles for the future. For now it is ok.
 
-Ok now I have kubeadm on each RPi. Is this what I need?
+## On the go (convert the following in ansible playbook)
+
+Ok now I have kubeadm on each RPi. Is this what I need? I think not.
 My laptop will be my master node and I already have kubectl installed on.
+
+Let's do a recap. My aim now is make a playbook to setup node workers. Workers components are:
+- kubelet,
+- kube-proxy
+These two component need a public/private key pair each. To achieve this I have to use a certificate created by a certification authority that is bound to cluster. Instead, the following components:
+- api-server,
+- etcd,
+- scheduler,
+- control-manager
+are control-plane (read master node) components. I will manage them in another playbook.
 
 Looks I have to create a CA certificate and sign it with a key to provide a Certificate Authority for the cluster... I thought it was simpler. For now I am following this guide:
 
 https://github.com/mmumshad/kubernetes-the-hard-way
 
+along with official docs.
+
+Playbook is not complete and barely sufficient for my needs. Switching to ansible roles to install kubeadm, kubelet, kubectl on working nodes:
+```
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+##sudo apt-mark hold kubelet kubeadm kubectl ## not this one, it will keep kubelet kubeadm kubectl as unupgradable
+```
+Do api-server, etcd, scheduler and control-manager are shipped with kubeadm? Investigate.
+
+kubectl command must be added to pi user:
+```
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+maybe this step is unnecessary, pi should be a root user. kubeadm init command will output something useful about joining nodes to cluster.. Maybe I should put that output in a file.
 
 ## Notes
 Caste told me not to go this way but go for a classical install in a RPi V.3 and, once done, get a backup image from that to install i my other RPis (v.4). Use the RPi v.3 to get a backup image because it has a HDMI port, so I can plug a screen on.

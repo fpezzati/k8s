@@ -1,0 +1,17 @@
+---
+- name: update apt and install required tools
+  apt:
+    pkg:
+      - apt-transport-https
+      - curl
+    state: present
+    update_cache: true
+- name: add k8s repos to apt
+  ansible.builtin.shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  become: yes
+- name: update once again apt with the new repos and install kubelet kubeadm
+  apt:
+    pkg:
+      - kubelet
+      - kubeadm
+    update_cache: true

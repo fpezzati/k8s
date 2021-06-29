@@ -1,0 +1,6 @@
+[rpi.k8s.node]
+nestor1
+nestor2
+nestor3
+[rpi.k8s.master]
+nestor1

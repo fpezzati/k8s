@@ -1,0 +1,52 @@
+---
+- hosts: rpi.k8s.cluster
+  tasks:
+  - name: download docker install script from get.docker.com
+    ansible.builtin.get_url:
+      url: http://get.docker.com
+      dest: /tmp/get-docker.sh
+  - name: Changing perm of "/tmp/get-docker.sh", adding "+x"
+    ansible.builtin.file:
+      path: /tmp/get-docker.sh
+      mode: '1777'
+  - name: run docker install script
+    ansible.builtin.shell: /tmp/get-docker.sh
+  - name: Create docker group
+    group:
+      name: "docker"
+      state: present
+    become: yes
+  - name: Add user 'pi' to docker group
+    user:
+      name: "pi"
+      groups: "docker"
+      append: "yes"
+    become: yes
+  - name: install pip3 because of docker-compose
+    apt:
+      name: python3-pip
+    become: yes
+  - name: install docker-compose
+    ansible.builtin.shell: pip3 install docker-compose
+    become: yes
+  - name: check docker is installed correctly
+    ansible.builtin.shell: docker run hello-world
+  - name: add kubernetes repository
+    ansible.builtin.apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      filename: /etc/apt/sources.list.d/kubernetes.list
+    become: yes
+
+## installing kubeadm, kubelet, kubectl on working nodes
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl && curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - cat << EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list deb https://apt.kubernetes.io/ kubernetes-xenial main EOF
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+## fucking not working complex one-string-for-bash-hipsters commands. Use the following ones
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+##sudo apt-mark hold kubelet kubeadm kubectl ## not this one it will keep kubelet kubeadm kubectl as unupgradable
+
+## cgroup configuration should be not necessary

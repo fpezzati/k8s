@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: my-rc
+  labels:
+    app: myapp
+    type: sometype
+spec:
+  template:
+    metadata:
+      name: myapp-pod
+      labels:
+        app: myapp
+        type: sometype
+    spec:
+      containers:
+        - name: mysimpleapp
+          image: fpezzati/simpleexpressapp
+  replicas: 3

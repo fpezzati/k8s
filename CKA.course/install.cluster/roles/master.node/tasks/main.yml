@@ -1,0 +1,16 @@
+# k8s master node needs:
+# - docker
+# - simple.node
+# It also needs kubelet to be enabled and running and kubectl
+---
+- name: add k8s repos to apt
+  ansible.builtin.shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  become: yes
+- name: update once again apt with the new repos and install kubelet kubeadm and kubectl
+  apt:
+    pkg:
+      - kubelet={{ k8s_version }}
+      - kubeadm={{ k8s_version }}
+      - kubectl={{ k8s_version }}
+    update_cache: true
+  become: yes
