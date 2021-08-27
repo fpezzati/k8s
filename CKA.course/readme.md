@@ -268,7 +268,7 @@ spec:
 ```
 the `hard` part indicates the limit namespaces can reach in terms of resources.
 
-Command used during test:
+Commands used during test:
 - kubectl get namespaces (or kubectl get ns),
 - kubectl get pods --namespace=somenamespace (or kubectl get pods -n somenamespace),
 - kubectl run redis --image=redis --namespace=somenamespace,
@@ -346,7 +346,7 @@ spec:
     type: sometype
 ```
 
-Command used during test:
+Commands used during test:
 - kubectl get svc -o wide,
 - kubectl describe svc service-name,
 - kubectl get deployments,
@@ -367,7 +367,7 @@ Imperative commands are useful to manage and accomplish tasks on a cluster but, 
 
 Declarative commands rely on .yml or manifest or something that has been wrote down because they ask for the change specified in the file. k8s try to apply the file in a idempotent way doing the only changes that are mandatory. Moreover you do this by relying on a file which can be versioned.. This is the real streght: idempotence and versioning.
 
-Command used during test:
+Commands used during test:
 - kubectl run nginx-pod --image=nginx_alpine,
 - kubectl delete pod nginx-pod,
 - kubectl run nginx-pod --image=nginx:alpine,
@@ -428,7 +428,7 @@ If a ReplicaSet cannot find any component it is not created. The same for Servic
 
 Annotations are some sort of special labels. As labels can be used to attach arbitrary metadata to components, but they are not identifying, a selector cannot use them to identify a component.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods --namespace=dev,
 - kubectl get all --selector env=prod,
 - kubectl get pods --selector env=prod,bu=finance,tier=frontend (is the same to use -l instead of selector, i.e.: kubectl get pods -l env=prod,bu=finance,tier=frontend),
@@ -470,7 +470,7 @@ Taints and tolerations do not say which pod will be scheduled on which node, but
 
 Taint has an explicit imperative command while toleration not, by using taint on a pod a tolerance is added instead, so taint differs if is run against a node or a pod.
 
-Command used during test:
+Commands used during test:
 - kubectl describe node node01 | grep taint,
 - kubectl taint nodes node01 spray=mortein:NoSchedule,
 - kubectl run mosquito --image=nginx,
@@ -533,7 +533,7 @@ Some allowed operators: `In`, `NotIn`, `Exists` (checks label not value)...
 
 `affinity.nodeAffinity.requiredDuringSchedulingRequiredDuringExecution` is planned in the future.
 
-Command used during test:
+Commands used during test:
 - kubectl label node node01 color=blue,
 - kubectl create deployment blue --image=nginx --replicas=3,
 - kubectl describe node node01,
@@ -605,7 +605,7 @@ spec:
 ```
 it is exactly as the replicaset except for the name.
 
-Command used during test:
+Commands used during test:
 - kubectl get daemonset --all-namespaces -o wide,
 - kubectl get ds (ds is the short for daemonset),
 - kubectl describe daemonset kube-flannel-ds -n kube-system,
@@ -648,7 +648,7 @@ Because pods are indicated explicitly in node's manifest directory, kube-schedul
 
 Trick to identify a static pod: pod's name has '-node-name' as suffix.
 
-Command used during test:
+Commands used during test:
 - ps aux | grep kubelet (to find manifest folder passed as parameter),
 - kubectl get pods --all-namespaces -o wide,
 - kubectl describe node controlplane,
@@ -682,7 +682,7 @@ Pod can specifically choose a scheduler by specifying `spec.schedulerName` value
 
 To see scheduler's log, type `kubectl logs my-custom.scheduler --name-space=kube-system`.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods -n=kube-system,
 - kubectl describe pod kube-scheduler-master -n=kube-system,
 Command used in test to deploy a custom scheduler:
@@ -708,7 +708,7 @@ metric server can be added to a cluster as deploy or as an addons on minikube. O
 - `kubectl top node`,
 - `kubectl top pod`.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods --all-namespaces
 - git clone https://github.com/kodekloudhub/kubernetes-metrics-server.git | kubectl create -f .
 - kubectl top node
@@ -718,7 +718,7 @@ Command used during test:
 ### Managing application logs
 Docker has a specific command to get log: `docker logs`. In k8s pod's log can be shown by `kubectl logs -f pod-name` but only if there is a lone container in the pod. If there are two or more containers in a pod, the container name must be specified, otherwise command will fail: `kubectl logs -f pod-name container-name`.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods
 - kubectl describe pod webapp-1
 - kubectl logs webapp-1
@@ -754,7 +754,7 @@ Quick recap:
 - `kubectl rollout undo deployment/my-deployment-name` to rollback a deployment to previous revision,
 - `kubectl rollout undo deployment/my-deployment-name --to-revision=3` to rollback a deployment to a specific revision number (history gives you revisions).
 
-Command used during test:
+Commands used during test:
 - kubectl get pods,
 - kubectl get deployments -o wide,
 - kubectl describe deployment frontend,
@@ -813,7 +813,7 @@ spec:
 ```
 spec.containers[?].command overrides `ENTRYPOINT` and spec.containers[?].args overrides `CMD` in docker image.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods,
 - kubectl describe pod ubuntu-sleeper,
 - vi ubuntu-sleeper-2.yaml,
@@ -887,7 +887,7 @@ spec:
     image: simple-webapp-color
 ```
 
-Command used during test:
+Commands used during test:
 - kubectl get pods -o wide,
 - kubectl describe pod webapp-color,
 - kubectl get pod webapp-color -o yaml > webapp-color.yml | vi webapp-color.yml,
@@ -969,7 +969,7 @@ Secrets are sent to a node only if a pod require them and kubelet stores them in
 
 Well secrets do not look so secure.. A better way could be to use ETCD as store and 'Encryption at Rest' to serve them. Other ways to handle secrets are available.
 
-Command used during test:
+Commands used during test:
 - kubectl explain pod (useful command to get syntax about component format, copy the required snippet and paste in your .yml),
 - kubectl get secrets,
 - kubectl get secrets -o wide,
@@ -999,7 +999,7 @@ A multi container pod really reminds me of docker-compose.
 
 Additional containers in pod came because the main service needs some additional effort that is out of its main scope (i.e.: a log service). An additional container may occur as SIDECAR, ADAPTER or AMBASSADOR, these are distribute system design patterns.
 
-Command used during test:
+Commands used during test:
 - kubectl get po red -o wide,
 - kubectl get pods,
 - kubectl describe pod blue,
@@ -1018,7 +1018,7 @@ A container is supposed to stay alive as long as the hosting pod. If container s
 
 So, if some operation is needed before main container to start, InitContainer can trigger a container execution before the main container is executed.
 
-Command used during test:
+Commands used during test:
 - kubectl get pods -o wide,
 - kubectl describe pod blue,
 - kubectl get pods,
@@ -1046,7 +1046,7 @@ Command `kubectl drain node01` causes the pods to be removed and node to be not 
 
 Command `kubectl cordon node01` marks the node as unschedulable, no new pod will be scheduled here.
 
-Command used during test:
+Commands used during test:
 - kubectl get nodes,
 - kubectl get deployments,
 - kubectl get pods -o wide,
@@ -1140,7 +1140,7 @@ kubectl uncordon node-name
 ```
 as before, daemon-reload and kubelet are restarted, worker node uncordoned.
 
-Command used during test:
+Commands used during test:
 - kubectl get nodes,
 - kubectl version --short,
 - kubectl get deployments,
@@ -1189,7 +1189,7 @@ Because etcd database relies on TSL, following options are mandatory:
 
 etcd is exposed by default on port 2379.
 
-Command used during test:
+Commands used during test:
 - kubectl get deployments --all-namespaces,
 - kubectl get pods --all-namespaces -o wide,
 - kubectl describe -n kube-system pod etcd-controlplane,
@@ -1448,7 +1448,7 @@ To collect such infos, read the components config files or commands that were us
 
 When there are issues the first place where to check is the log, `journalctl -u etcd.service -l` if cluster is installed 'the hard way'. Otherwise, because components are pods, `kubectl logs etcd-master` should be enought to get wich pkeys or certs were used. Docker can be useful too: `docker logs container.id`.
 
-Command used during test:
+Commands used during test:
 - kubectl get ns,
 - kubectl get pods -n kube-system,
 - kubectl describe kube-apiserver-controlplane -n kube-system,
@@ -1511,7 +1511,7 @@ Value in spec.request is the certificate signing request encoded base64 (for wha
 
 controllermanager is the controlplane component in charge to manage certificate signing requests. controllermanager is aware about which pkey and cert to use by respectively `--cluster-signing-key-file` and `--cluster-signing-cert-file` options.
 
-Command used during test:
+Commands used during test:
 - ls -ll /root/,
 - cat akshay.csr,
 - cat akshay.key,
@@ -1584,7 +1584,7 @@ Comand `kubectl config view` shows current config.
 
 Attribute clusters.cluster.certificate-authority can be substituted with clusters.cluster.certificate-authority-data to specify certificate itself in config file.
 
-Command used during test:
+Commands used during test:
 - echo $HOME,
 - ls /root/.kube/,
 - kubectl config view,
@@ -1712,7 +1712,7 @@ rules:
   resourceNames: ["pod-name1", "pod-name2"]
 ```
 
-Command used during test:
+Commands used during test:
 - kubectl -n kube-system describe pod kube-apiserver-controlplane | grep authorization-mode,
 - kubectl get roles,
 - kubectl get roles --all-namespaces,
@@ -1860,7 +1860,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-Command used during test:
+Commands used during test:
 - kubectl get clusterroles,
 - kubectl get clusterrolebindings,
 - kubectl get clusterrolebindings cluster-admin -o yaml,
@@ -1939,7 +1939,7 @@ spec:
   - name: my-docker-registry-secret-name
 ```
 
-Command used during test:
+Commands used during test:
 - kubectl get pods,
 - kubectl get deployments,
 - kubectl describe deployment web,
@@ -1981,7 +1981,7 @@ spec:
 ```
 Capabilities are supported only at container level (don't really know what capabilities are in docker).
 
-Command used during test:
+Commands used during test:
 - kubectl describe pod ubuntu-sleeper,
 - kubectl edit pod ubuntu-sleeper,
 - kubectl get pod ubuntu-sleeper -o yaml > ubuntu-sleeper-secctx.yml,
@@ -2114,7 +2114,7 @@ this case `db` pods are allowed to make requests on port 80 to a specific IP add
 
 When incoming traffic is allowed, reply to that traffic is allowed automatically, no need of extra rule.
 
-Command used during test:
+Commands used during test:
 - kubectl get networkpolicy --all-namespaces
 - kubectl describe networkpolicy payroll-policy
 - kubectl get pods --show-labels
@@ -2282,7 +2282,7 @@ link is the `name` attribute under `volumeMounts`.
 
 Cannot revome a PVC while is used by a running pod.
 
-Command used during test:
+Commands used during test:
 kubectl get pods
 - kubectl describe pod webapp
 - kubectl exec webapp -- cat /log/app.log
@@ -2359,16 +2359,31 @@ storage classes automatically build volume claims.
 
 What is dynamic storage provisioning? I don't get it right.
 
-Command used during test:
+Commands used during test:
 - kubectl get pvc --all-namespaces
 - kubectl get pvc local-pvc -o wide
 
 ## Networking
 There is a lot to know here. This is one of the basic bricks to build a k8s cluster. We will go throught some Linux networking basics first.
 
+k8s networking addresses 4 main issues:
+- container-to-container communications,
+- pod-to-pod,
+- pod-to-service communcation,
+- external-to-service communication.
+
+To achieve that k8s imposes the following fundamentals every networking solution must implement:
+- pods on a node can communicate with all pods on all nodes without NAT,
+- agents on a node (kubelet, daemons, ect.) can communicate with all pods on the same node.
+
 Every pod has a unique IP
 
 Every pod is accessible by any other pod, regardless of what node they are on.
+
+How containers on a pod talk to each other?
+- well, containers in a pod share network namespaces, IP and MAC address, so they can talk on localhost,
+- containers in a pod must  coordinate port usage (reminds me of docker-compose),
+- it is all about how CNI (container network interface) is implemented (really?).
 
 How containers on a node talk to each other?
 - Node shares a root network namespace. Node `eth0` interface stays in the root networkns.
@@ -2380,6 +2395,22 @@ How containers on different nodes talk to each other?
 - nodes are configured with port forwarding enabled.
 - k8s require nodes to be able to route packets, but he does not bother about how.
 
+What are services?
+An abstraction about how to expose a set of pods as a network service. Service example:
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: myapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+```
+service named `my-service` targets on port 9376 any pod labeled as `app=myapp`. When not using a selector service must be explicitly mapped to a network address by an ` Endpoint` object.
 
 ### Switching and routing
 `ip link` shows and allows update about interfaces on board.
@@ -2572,7 +2603,7 @@ Docker has its own container networking model, CNM, while k8s uses CNI. To overc
 - `arp`,
 - `netstat -plnt`.
 
-Command used during test:
+Commands used during test:
 - kubectl get nodes,
 - route,
 - kubectl inspect node controlplane,
@@ -2672,7 +2703,7 @@ Each agent stores a topology info about the entire cluster, ww solution creates 
 
 WW solution can be deployed by simply run `kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(desired version | base64 | tr -d '\n')"`. This will deploy ww agents (peers) as pod, one for each node.
 
-Command used during test:
+Commands used during test:
 - ps -aux | grep kubelet | grep cni,
 - ls /opt/cni/bin,
 - (default cni conf dir is /etc/cni/net.d),
@@ -2715,7 +2746,7 @@ Each CNI solution has its approach.
 
 For example weave works CNI IPAM solution uses a predefined range of IP addresses and share them among all the pods in the cluster. Weave works uses 10.32.0.0/12 as range, that means from 10.32.0.0 to 10.47.255.255.
 
-Command used during test:
+Commands used during test:
 - kubectl get nodes,
 - cd /etc/cni/net.d/,
 - ls,
@@ -2750,4 +2781,506 @@ Command used during test:
   - kubectl describe pod busybox (or kubectl exec -it busybox -- sh and run 'ip r' command).
 
 ###Service networking
-Service
+Service is an abstraction to make a pod reachable from other pods, even if they are hosted on different nodes in the cluster. Services are not really a cluster component, a service does not exists in the cluster
+
+ClusterIP: a service that make a pod reachable from other pods in cluster, but not reachable from outside.
+
+NodePort: a service that make a pod reachable from outside the cluster.
+
+Kubelet in cluster's node talks with kube-apiserver. When a pod is created on that node, CNI is invoked to provide new pod's networking, then kubelet tells kube-apiserver that pod has been created.
+
+When a service is created, it lives in the cluster but not bound to any resource. The new service receives an IP address from a predefined range. The IP addresses range can be configured by --service-cluster-ip-range option while starting kube-apiserver. Once IP address is assigned, kube-proxy on each node creates a route rule allowing node's pod to reach that service.
+
+kube-proxy can create the route rule to a service in different ways: userspace, iptables, ipvs. Iptables is the default.
+
+`kubelet get service`: to get cluster services.
+`iptables -L -t net | grep some-service-name`: to see rules kube-proxy created about that service by using iptables. kube-proxy logs the operation in its own log, `/var/log/kube-proxy.log` (path may change, it depends from installation).
+
+Questions and commands used during test:
+- how to find nodes network addresses range
+  - kubectl get nodes -o wide, to see IP address values
+  - ip addr, to check which network interface matches those addresses and which range she offers
+
+- how to find pod network addresses range
+  - kubectl get pods --all-namespaces
+  - kubectl logs weave-net-kp74d -n kube-system
+  - kubectl logs weave-net-kp74d weave -n kube-system
+  - kubectl logs weave-net-kp74d weave -n kube-system | grep ipalloc
+
+- how to find service network addresses range
+  - cat /etc/kubernetes/manifests/kube-apiserver.yaml
+  - cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
+
+- check how many kube-proxy are running in cluster
+  - kubectl get nodes
+  - kubectl get pods -n kube-system
+
+- which kind of proxy kube-proxy is configured to use
+  - cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep proxy
+  - cat /etc/kubernetes/manifests/kube-apiserver.yaml
+  - kubectl get pods -n kube-system
+  - kubectl logs kube-proxy-2zc7w
+  - kubectl logs kube-proxy-qsffw
+  - kubectl logs kube-proxy-qsffw -n kube-system
+  - kubectl logs kube-proxy-2zc7w -n kube-system
+
+- how kube-proxy are deployed?
+  - kubectl inspect pod kube-proxy-2zc7w
+
+### Cluster DNS
+Cluster DNS logs service name and its corresponding IP addres.
+
+If service is not in the default namespace, then pod can access service by calling hostname.namespace.
+
+hostname.namespace.svc.cluster.local: to access service from pods.
+
+Pods are logged in DNS too. They are reachable by hitting their IP address as hostname, but dots are substituted by dashes. So pod with IP address 10.27.0.8 will have 10-27-0-8 as hostname.
+
+### CoreDNS in k8s
+How k8s implements DNS? k8s DNS logs each pod's hostname and IP address.
+
+CoreDNS is the default implementation of k8s's DNS. CoreDNS is deployed as pods by a deployment object with a replicaset. Once deployed, a service is created to let pods reach the DNS. k8s automatically add DNS as entry in pod's `/etc/resolv.conf`, kubelet is in charge of that, kubelet's config file has an entry with the DNS server address.
+
+Moreover, in each pod's `/etc/resolv.conf` are added `search` entries to resolve cluster.local, svc.cluster.local and default.svc.cluster.local for services only, pods aren't in `/etc/resolv.conf`.
+
+CoreDNS uses a configuration specified in `/etc/coredns/Corefile`. Option `pods insecure` allows pods to be logged in DNS table...
+
+`kubectl get configmap -n kube-system` to change CoreDNS configuration.
+
+Questions and commands used during test:
+- Identify the DNS solution implemented in this cluster:
+  kubectl get pods -n kube-system
+
+- What is the name of the service created for accessing CoreDNS:
+  kubectl get services --all-namespaces
+
+- How is the Corefile passed in to the CoreDNS POD:
+  by a configmap object (run kubectl describe deployments coredns -n kube-system, you can see configuration file is provided by mounting a config volume)
+
+- What is the name of the ConfigMap object created for Corefile:
+  kubectl get configmap -n kube-system
+
+- What name can be used to access the hr web server from the test Application:
+  kubectl get services
+  kubectl describe service web-service (inspect service to find clues about which pods are affected, usually a selector is involved)
+
+- We just deployed a web server - webapp - that accesses a database mysql - server. However the web server is failing to connect to the database server. Troubleshoot and fix the issue. They could be in different namespaces. First locate the appliations. The web server interface can be seen by clicking the tab Web Server at the top of your terminal:
+  (webapp and mysql are not in the same namespace) kubectl get pods --all-namespaces (to find in which namespace mysql pod is)
+  kubectl get deployments
+  kubectl get pods -n payroll
+  kubectl get services -n payroll
+  kubectl get deployments webapp -o yaml > webapp.yaml
+  vi webapp.yaml and check environment variable (spec.containers.env part). Change the variable value with the right hostname
+  kubectl apply -f webapp.yaml
+
+- nslookup mysql.payroll > /root/nslookup.out
+
+### Ingress
+Ingress is a configurable service to configure and manage exposed pods (node-ports or load-balancers) outside the cluster.
+
+To use Ingress you deploy an ingress controller (reverse proxy?), configured by a set of rules: the ingress resources.
+
+Ingress controller implementations: GCP and GCE, Nginx, Contour, HAProxy, traefik, Istio.
+
+To get an Ingress controller you create a deployment of a specific image.
+```
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: nginx-ingress
+  template:
+    metadata:
+      labels:
+        name: nginx-ingress
+    spec:
+      containers:
+      - name: nginx-ingress-controller
+        image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+      args:
+        - /nginx-ingress-controller
+        - --configmap=$(POD_NAMESPACE)/configmap-metadata-name
+      env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+```
+mandatory values:
+- `args` parameter /nginx-ingress-controller must be provided,
+- based on nginx, the needed configuration can be provided by a configmap component instead of modifying config files,
+- `env` parts are environment variables nginx requires,
+- `ports` indicates which ports are used by the ingress controller.
+
+Of course you need a service to expose the ingress controller:
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 443
+    protocol: TCP
+    name: https
+  selector:
+    name: nginx-ingress
+```
+
+Ingress component does additional work to keep an eye on ingress resources and interact with the api-server. To do that, ingress controller needs a service account, `roles`, `clusterroles` and `rolebindings`.
+
+What are ingress resources? Configuration that applies to ingress controller.
+
+Ingress resource tell how ingress controller must route incoming traffic.
+
+An ingress resource:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-something
+spec:
+  backend:
+    serviceName: service_name
+    servicePort: 80
+```
+that you create by the usual command `kubectl create -f ingress-resource-name-file.yml`. That resource tells ingress to route incoming traffic to service `service_name`.
+
+Suppose we want to route traffic hitting url 'www.something.com'. The following resource will do the job:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-something
+spec:
+  backend:
+    serviceName: service_something
+    servicePort: 80
+```
+The following rule instead handles requests and routes them to service based on their path:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-something-somethingelse
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /something
+        backend:
+          serviceName: service_something
+          servicePort: 80
+      - path: /somethingelse
+        backend:
+          serviceName: service_somethingelse
+          servicePort: 80
+```
+The following rule routes traffic by domain:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-something-somethingelse
+spec:
+  rules:
+  - host: something.my_service.com
+    http:
+      paths:
+      - backend:
+          serviceName: service_something
+          servicePort: 80
+  - host: somethingelse.my_service.com
+    http:
+      paths:
+      - backend:
+          serviceName: service_somethingelse
+          servicePort: 80
+```
+You see, `host` property substitues `path` of the previous one.
+
+If you miss `host` property, resource applies to all domains (really?).
+
+Command `kubectl describe ingress ingress-something-somethingelse` shows resource's rules.
+
+Ingress resource has always a default backend property. If ingress finds no matching rule for that resource, then request is forwarded to the url default backend property indicates. This means you have to deploy a service for the default backend routing. So when user asks for a non existing url because of the path part, then default backend service will serve that request.
+
+Recap: dns drives requests to our node service, which forward requests about a specific domain to ingress controller, which read its rules and route requests to the service ingress resources told.
+
+Questions and commands used during test:
+- Which namespace is the Ingress Resource deployed in?
+  `kubectl get ingress --all-namespaces`
+- What is the Host configured on the ingress-resource?
+  `kubectl describe ingress ingress-wear-watch -n app-space`
+- You are requested to change the URLs at which the applications are made available. Make the video application available at /stream.
+  `kubectl edit ingress -n app-space` and I changed the path about video app's backend. Alternative way requires to dump of ingress at app-space, `kubectl describe ingress ingress-wear-watch -o yaml > somewhere.yaml`, edit that file, remove the app-space's ingress, `kubectl delete ingress ingress-wear-watch -n app-space` and recreate that ingress, `kubectl apply -f somewhere.yaml`.
+- You are requested to add a new path to your ingress to make the food delivery application available to your customers. Make the new application available at /eat.
+  `kubectl get services -n app-space` to get info about 'food' service and `kubectl edit ingress -n app-space` to edit app-space's ingress accordingly.
+- You are requested to make the new application (pay application) available at /pay.
+  First I explored services in target namespace, `kubectl get services -n critical-space`, then I created a new ingress file to expose the new service, `vi critical-space-ingress.yml`, then I create a new ingress for critical-space namespace, `kubectl create -f critical-space-ingress.yml`.
+
+- Let us now deploy an Ingress Controller. First, create a namespace called 'ingress-space'.
+  I create a namespace using the following definition:
+  ```
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ingress-space
+  ```
+- The NGINX Ingress Controller requires a ConfigMap object. Create a ConfigMap object in the ingress-space. Spec: name = nginx-configuration.
+  I create a configmap using the following definition:
+  ```
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: nginx-configuration
+    namespace: ingress-space
+  ```
+- The NGINX Ingress Controller requires a ServiceAccount. Create a ServiceAccount in the ingress-space. Specs: name = ingress-serviceaccount
+  I create a serviceaccount using the following definition:
+  ```
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: ingress-serviceaccount
+    namespace: ingress-space
+  ```
+- Let us now deploy the Ingress Controller. Create a deployment using the file given.
+  The given file had the following content:
+  ```
+  apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: ingress-controller
+    namespace: ingress-
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: nginx-ingress
+    template:
+      metadata:
+        labels:
+          name: nginx-ingress
+      spec:
+        serviceAccountName: ingress-serviceaccount
+        containers:
+          - name: nginx-ingress-controller
+            image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+            args:
+              - /nginx-ingress-controller
+              - --configmap=$(POD_NAMESPACE)/nginx-configuration
+              - --default-backend-service=app-space/default-http-backend
+            env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+            ports:
+              - name: http
+                containerPort: 80
+              - name: https
+                containerPort: 443
+  ```
+  I fixed it this way:
+  ```
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ingress-controller
+    namespace: ingress-space
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: nginx-ingress
+    template:
+      metadata:
+        labels:
+          name: nginx-ingress
+      spec:
+        serviceAccountName: ingress-serviceaccount
+        containers:
+          - name: nginx-ingress-controller
+            image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+            args:
+              - /nginx-ingress-controller
+              - --configmap=$(POD_NAMESPACE)/configmap-metadata-name
+              - --default-backend-service=app-space/default-http-backend
+            env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+            ports:
+              - name: http
+                containerPort: 80
+              - name: https
+                containerPort: 443
+  ```
+
+- Let us now create a service to make Ingress available to external users. Name: ingress, Type: NodePort, Port: 80, TargetPort: 80, NodePort: 30080, Use the right selector.
+  I created a service using the following definition:
+  ```
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress
+    namespace: ingress-space
+  spec:
+    type: NodePort
+    ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      nodePort: 30080
+      name: http
+    - port: 443
+      targetPort: 443
+      protocol: TCP
+      name: https
+    selector:
+      name: ingress-controller
+  ```
+  Cannot get how to obtain the right selector's name..
+  In solution the command `kubectl -n ingress-space expose deployment ingress-controller --name ingress --port 80 --target-port 80 --type NodePort --dry-run=client -o yaml > ingress-svc.yaml` was used to obtain most of the following definition, namespace and nodePort were added later:
+  ```
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress
+    namespace: ingress-space
+  spec:
+    type: NodePort
+    ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      nodePort: 30080
+      name: http
+    selector:
+      name: nginx-ingress
+  ```
+  Ok now I got it: selector name's value must match with ingress controller matchlabels name's value.
+
+- Create the ingress resource to make the applications available at /wear and /watch on the Ingress service.
+  I created an ingress resource using the following definition:
+```
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-something-somethingelse
+  namespace: app-space
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /wear
+        pathType: Prefix
+        backend:
+          serviceName: wear-service
+          servicePort: 8080
+      - path: /watch
+        pathType: Prefix
+        backend:
+          serviceName: video-service
+          servicePort: 8080
+```
+
+## Design and install a Kubernetes Cluster
+
+### Design a Kubernetes Cluster
+
+### Choosing Kubernetes Infrastructure
+cloud foundry container runtime
+vagrant
+
+### Configure HA
+Consider to have more than 1 master node to avoid SPOF.
+Master nodes have istances of the same services: api server,controller manager, etcd, scheduler...
+kubeconfig file has master node ulr..
+A load balancer manage incoming requests among master nodes, kubecontrol utility must point to that load balancer.
+
+Multiple scheduler and controller manager instances run in an active-standby mode (as they share a single thread). There is a leader election protocol that decides which instance will satisfy the next request. All the controller manager instances race to get pre-emption on the kube-controller-manager endpoint component. The first who get control of that component is the leader and will satisfy the next request.
+
+Scheduler follows a method similar to controller manager.
+
+ETCD can be part of each master node (this is called 'stacked topology'). It is risky, if a node goes down controlplane and cluster integrity is lost.
+ETCD can be external to cluster (external etcd topology).
+
+### ETC in HA
+Etcd ensure HA by leader election. ETCD uses RAFT protocol to elect leader.
+
+When write arrives, leader processes the write request and ensure that other instances in cluster get a copy of the updated value.
+
+If request reach a non-leader node, he forward request to leader.
+
+A write is considered complete if the leader gets an ack from the quorum of n/2+1 instances in cluster.
+
+Beware of network segmentations and quorum among resulting network subsets.
+
+### Install k8s the kubeadm way
+Looks like steps I did were right. I have to provide network capabilities (POD Network) and then join nodes.
+
+Does iptables work correctly on nodes? Check it, use as reference the install kubeadm page.
+
+Ok lsmod | grep br_netfilter shows that br_netfilter is loaded on each node.
+
+I have to add a k8s.conf file with the following content:
+```
+br_netfilter
+```
+in /etc/modules-load.d/. Then I have to add a k8s.conf file with the following content:
+```
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+```
+in /etc/sysctl.d/. Once done both, run `sysctl --system` to update system with new configuration. This has to be done on each node. I did by hand but I have to update my ansible playbooks.
+
+Don't remember if I installed docker's official gpg and apt repo...
+
+I have to add a `daemon.json` file in /etc/docker with the following content:
+```
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+```
+then restart docker. Ok but what is this about? I don't get that.. To setup the docker daemon and force it to rely on systemd. On each node.
+I also have to create a directory: `mkdir -p /etc/systemd/system/docker.service.d`. On each node.
+Don't think run `sudo systemctl daemon-reload && sudo systemctl restart docker` is necessay once I put that in ansible. On each node.
+
+kubeadm, kubelet and kubectl are installed on each node already.
+
+cgroup driver is skippable because I am using docker.
