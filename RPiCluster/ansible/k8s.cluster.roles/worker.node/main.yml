@@ -1,4 +1,0 @@
-
-On worker nodes:
-- enable and restart docker service: `systemctl enable docker && systemctl start docker`,
-- join the worker to cluster by using command kubeadm told when we do init on master: `kubeadm join masternode.ip:masternode.port --token some.weird.symbols.sequence.as.token --discovery-token-ca-cert-hash a.more.weird.symbols.sequence.as.token`

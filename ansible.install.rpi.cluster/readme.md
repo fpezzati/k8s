@@ -8,7 +8,7 @@ On each node:
 - install kubeadm and docker,
 I think I have already did these steps
 
-What is SELINUX? An additional security layer RH added to its distributions. Debian like SO are SELINUX free.
+What is SELINUX? An additional security layer RH added to its distributions. Debian like OS are SELINUX free.
 
 On master node:
 - enable and start kubelet: `systemctl enable kubelet && systemctl start kubelet`,
