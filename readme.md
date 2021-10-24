@@ -1,5 +1,4 @@
 # CKA
-Code DEVOPS15 gives me a 15% discount on registering for the exam.
 
 ## Core concepts
 
