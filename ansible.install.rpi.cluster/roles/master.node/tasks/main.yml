@@ -12,5 +12,5 @@
       - kubelet={{ k8s_version }}
       - kubeadm={{ k8s_version }}
       - kubectl={{ k8s_version }}
-    update_cache: true
+#    update_cache: true
   become: yes

@@ -10,7 +10,7 @@
       - apt-transport-https
       - curl
     state: present
-    update_cache: true
+#    update_cache: true
   become: yes
 - name: add k8s repos to apt
   ansible.builtin.shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
@@ -34,7 +34,7 @@
       - kubelet={{ k8s_version }}
       - kubeadm={{ k8s_version }}
       - kubectl={{ k8s_version }}
-    update_cache: true
+#    update_cache: true
   become: yes
 - name: enable and start kubelet
   ansible.builtin.systemd:

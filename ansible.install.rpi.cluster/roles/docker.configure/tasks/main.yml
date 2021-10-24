@@ -1,0 +1,10 @@
+---
+- name: configure docker daemon by copying a daemon.json file in /etc/docker/
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+- name: restart docker
+  shell: systemctl restart docker
+  become: yes
+- name: check docker is installed correctly
+  ansible.builtin.shell: docker run hello-world
