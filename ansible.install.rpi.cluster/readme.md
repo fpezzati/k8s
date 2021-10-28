@@ -36,23 +36,28 @@ Missing:
 Both commands need reboot.
 
 Done! I got a master!
-```
-To start using your cluster, you need to run the following as a regular user:
 
+To start using your cluster, you need to run the following as a regular user:
+```
   mkdir -p $HOME/.kube
   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
   sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
+```
 Alternatively, if you are the root user, you can run:
-
+```
   export KUBECONFIG=/etc/kubernetes/admin.conf
-
+```
 You should now deploy a pod network to the cluster.
 Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
   https://kubernetes.io/docs/concepts/cluster-administration/addons/
 
-Then you can join any number of worker nodes by running the following on each as root:
-
-kubeadm join 192.168.1.53:6443 --token r3jxg4.u5780dp9d2bhwe56 \
-        --discovery-token-ca-cert-hash sha256:80c8d844aa4c9f6efe8b9a9759afea513c1709ae7005987df7ac36d167ab110c
+Then you can join any number of worker nodes by running the following on each as root. To retrieve join command:
 ```
+kubeadm token create --print-join-command
+```
+
+Having error while installing calico on nodes....
+
+fatal: [nestor2]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:00.181011", "end": "2021-10-27 22:16:31.958093", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.777082", "stderr": "The connection to the server localhost:8080 was refused - did you specify the right host or port?", "stderr_lines": ["The connection to the server localhost:8080 was refused - did you specify the right host or port?"], "stdout": "", "stdout_lines": []}
+fatal: [nestor3]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:00.183344", "end": "2021-10-27 22:16:32.082569", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.899225", "stderr": "The connection to the server localhost:8080 was refused - did you specify the right host or port?", "stderr_lines": ["The connection to the server localhost:8080 was refused - did you specify the right host or port?"], "stdout": "", "stdout_lines": []}
+fatal: [nestor1]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:04.246235", "end": "2021-10-27 22:16:36.108484", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.862249", "stderr": "Unable to connect to the server: dial tcp 192.168.1.53:6443: connect: no route to host", "stderr_lines": ["Unable to connect to the server: dial tcp 192.168.1.53:6443: connect: no route to host"], "stdout": "", "stdout_lines": []}

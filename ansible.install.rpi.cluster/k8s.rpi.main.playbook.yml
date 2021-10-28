@@ -20,3 +20,13 @@
 - hosts: rpi.k8s.master
   roles:
     - master.node
+- hosts: rpi.k8s.node
+  tasks:
+    - name: check a cni is already installed
+      raw: test -e /etc/cni/net.d && echo true || echo false
+      register: cni_is_installed
+      check_mode: no
+    - name: install calico if no cni is already installed
+      include_role:
+        name: calico.install
+      when: cni_is_installed != true

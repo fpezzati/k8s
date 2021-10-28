@@ -18,6 +18,13 @@
 - name: turn memory swap off before install kubeadm
   ansible.builtin.shell: swapoff -a
   become: yes
+# not sure the following twos work properly. Did not tested..
+- name: configure cgroup
+  ansible.builtin.shell: echo -n ' cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1' >> /boot/cmdline.txt
+  become: yes
+- name: disable memory swap from turning on
+  ansible.builtin.shell: systemctl disable dphys-swapfile.service
+  become: yes
 - name: add k8s.conf file in /etc/modules-load.d/ to get br_netfilter up and running
   copy:
     src: br_netfilter

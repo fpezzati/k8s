@@ -14,3 +14,5 @@
       - kubectl={{ k8s_version }}
 #    update_cache: true
   become: yes
+- name: copy k8s admin.conf to .kube/config
+  ansible.builtin.shell: mkdir -p ~/.kube && sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && sudo chown $(id -u):$(id -g) $HOME/.kube/config

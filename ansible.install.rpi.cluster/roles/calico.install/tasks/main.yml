@@ -1,0 +1,7 @@
+---
+- name: download calico networking manifest
+  ansible.builtin.get_url:
+    url: https://docs.projectcalico.org/manifests/calico.yaml
+    dest: /tmp/calico.yaml
+- name: apply calico manifest on node
+  shell: kubectl apply -f calico.yaml
