@@ -55,9 +55,3 @@ Then you can join any number of worker nodes by running the following on each as
 ```
 kubeadm token create --print-join-command
 ```
-
-Having error while installing calico on nodes....
-
-fatal: [nestor2]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:00.181011", "end": "2021-10-27 22:16:31.958093", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.777082", "stderr": "The connection to the server localhost:8080 was refused - did you specify the right host or port?", "stderr_lines": ["The connection to the server localhost:8080 was refused - did you specify the right host or port?"], "stdout": "", "stdout_lines": []}
-fatal: [nestor3]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:00.183344", "end": "2021-10-27 22:16:32.082569", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.899225", "stderr": "The connection to the server localhost:8080 was refused - did you specify the right host or port?", "stderr_lines": ["The connection to the server localhost:8080 was refused - did you specify the right host or port?"], "stdout": "", "stdout_lines": []}
-fatal: [nestor1]: FAILED! => {"changed": true, "cmd": "kubectl apply -f calico.yaml", "delta": "0:00:04.246235", "end": "2021-10-27 22:16:36.108484", "msg": "non-zero return code", "rc": 1, "start": "2021-10-27 22:16:31.862249", "stderr": "Unable to connect to the server: dial tcp 192.168.1.53:6443: connect: no route to host", "stderr_lines": ["Unable to connect to the server: dial tcp 192.168.1.53:6443: connect: no route to host"], "stdout": "", "stdout_lines": []}
