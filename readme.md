@@ -1256,6 +1256,148 @@ etcd pod will be recreated automatically.
 *end*
 
 ## Security
+Kubernetes actors rely on TLS certs to communicate each other.
+
+Controlplane, or kubeapi-server, yaml can be found in /etc/kubernetes/manifest/kube-apiserver.yaml. Here are listed all the .crt and .key used to communicate with other k8s actors. You can also describe the controlplane pod on kube-system namespace to get the same infos. It is quite intuitive to get which files are used to communicate with which service.
+
+Usually tls files are under `/etc/kubernetes/pki` folder.
+
+Etcd service finds its tls into `/etc/kubernetes/pki/etcd` folder.
+
+`openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout` command is your friend when you want to check what's inside a .crt.
+
+apiserver and etcd use different CAs.
+
+### Manage TLS certificates
+User who wants to access cluster creates a .key and .crt file. .crt file must be signed by k8s CA.
+
+Kubernetes has its CA server, with its .key and .crt; if you want to sign a .crt you should access that server.
+
+controllermanager component is in charge about certificate operations. He has two specific subcomponents: csr-approving and csr-signing.
+
+Kubernetes offers api to interact with its CA server.
+
+Create a k8s object of type CertificateSigningRequest.
+
+User creates .key and .csr: `openssl req -new -key user.key -subj "/CN=username" -out user.csr`.
+
+User convert his .csr in base64: `cat user.csr | base64 | tr -d "\n"`.
+
+A new CertificateSigningRequest object is defined:
+```
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: csr_name_of_choiche
+spec:
+  expirationSeconds: 36000 #just an hour, not required
+  usages: # look at k8s documentation pages
+  - digital signature
+  - key encipherment
+  - client auth
+  signerName: kubernetes.io/kube-apiserver-client
+  request: <put base64 output here>
+```
+Cluster admins can see user signing request by command `kubectl get csr`.
+By command `kubectl certificate approve csr_name_of_choiche`, admin asks k8s's CA to sign that csr. Now, by running `kubectl get csr csr_name_of_choiche` -o yaml, user can get his cert:
+```
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  creationTimestamp: 2025-02-14T11:30:00Z
+  name: csr_name_of_choiche
+specs:
+  groups:
+  - system:<something>
+  - system:authenticated
+  expirationSeconds: 36000
+usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  username: <something>
+status:
+  certificate:
+<signed certificate is here>
+  conditions:
+  - lastUpdateTime: 2025-02-14T11:32:00Z
+  - message: This CSR was approved by kubectl certificate approve.
+  - reason: KubectlApprove
+  - type: Approved
+```
+Copy-n-paste the signed certificate and decode it as base64.
+
+Other commands that complete csr management:
+- `kubectl get csr <csr_name_of_choiche> -o yaml`
+- `kubectl certificate deny <csr_name_of_choiche>`
+- `kubectl kubectl delete csr <csr_name_of_choiche>`
+
+### KubeConfig
+Of course you can pass parameters to kubectl in order to interact with kube-apiserver:
+```
+kubectl get pods -n somenamespace --server someserver:6443 --client-key user.key --client-certificate user.crt --certificate-authority ca.crt
+```
+kubeconfig is far more handy. Kubeconfig has its configuration in `$HOME/.kube/config` and looks like this:
+```
+apiVersion: v1
+kind: Config
+current-context: k3d-test
+preferences: {}
+clusters:
+- cluster:
+    certificate-authority-data: <some-crt-data-base64-encoded>
+    server: https://0.0.0.0:38645
+  name: k3d-test
+contexts:
+- context:
+    cluster: k3d-test
+    user: admin@k3d-test
+  name: k3d-test
+users:
+- name: admin@k3d-test
+  user:
+    client-certificate-data: <some-crt-data-base64-encoded>
+    client-key-data: <some-key-data-base64-encoded>
+```
+There are three main subdocs:
+- `clusters`: here go all cluster user may access,
+- `users`: profiles user may use to access cluster listed in `clusters`,
+- `contexts`: a list of blending about `users` and `clusters`.
+
+`current-context`: indicates which combination of cluster and profile user is using.
+
+- `kubectl config view`: shows kubeconfig file content,
+- `kubectl config view --kubeconfig=some-kubeconfig-file`,
+- `kubectl config use-context context-name`: change `current-context` pointing to given context name,
+- `kubectl config -h`: prints help,
+
+A context may specify a `namespace` attribute to indicate a default namespace in which operate.
+
+### API Groups
+kube-apiserver can be consulted by http api: `curl https://<host-where-kube-apiserver-is-hosted>:6443`. Paths matches with k8s api groups:
+- /metrics,
+- /healthz,
+- /version,
+- /api,
+- /apis,
+- /logs
+
+Groups organize resources based on their functionality. Especially, /api and /apis find match into kubectl.
+
+/api/v1 match with core group which is about essential standard types and functionalities: /api/v1/pods, /api/v1/namespaces, /api/v1/nodes, /api/v1/sevices and so on, this group is pretty flat. It match with `apiVersion: v1` in manifest.
+
+/apis match with named group which is about /apis/apps, /apis/extendsions, /apis/networking.k8s.io, /apis/storage.k8s.io, /apis/authentication.k8s.io, /apis/certificates.k8s.io. All these groups have their resources.
+
+Summarizing: top /api and /apis groups organize resources. /api refers to core resources organized in a flat way. /apis refers to named resources, types that are extensions or custom resources in the k8s landscape. Each resource has a set of verb associated, read a set of action that user can apply to them. Not all the resources have the same actions.
+
+To interact kube-apiserver by http you have to specify key, certificate and CA's certificate. By using `kubectl proxy`, a proxy that fetch infos from kubeconfig is instantiated turning interaction by http more handy (like kubectl).
+
+### Authorization
+k8s allows following authorization modes: node, ABAC, RBAC, webhooks.
+
+Node authorization: implemented by Node Authorizer. Any incoming request by user having system:node as CN cert name, are evaluated by the Node Authorizer which grants access.
+
+<HERE>
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
@@ -1320,7 +1462,7 @@ some-symbol-sequence-representing-token1,user1,userid1,group1
 some-symbol-sequence-representing-token2,user2,userid2,group1
 some-symbol-sequence-representing-token3,user3,userid3,group2
 ```
-and can be provided to cluster by `--tocken-auth-file=usr-tkn-list.csv` in the ways already discussed except the http api:
+and can be provided to cluster by `--token-auth-file=usr-tkn-list.csv` in the ways already discussed except the http api:
 ```
 curl -v -k https://master-node-ip:6443/api/v1/pods --header "some-symbol-sequence-representing-token1"
 ```
