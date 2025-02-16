@@ -1395,7 +1395,117 @@ To interact kube-apiserver by http you have to specify key, certificate and CA's
 ### Authorization
 k8s allows following authorization modes: node, ABAC, RBAC, webhooks.
 
-Node authorization: implemented by Node Authorizer. Any incoming request by user having system:node as CN cert name, are evaluated by the Node Authorizer which grants access.
+Node authorization: implemented by Node Authorizer.
+Manage api operations for specific kubelets:
+- read about service, endpoints, nodes, pods, secrets, configmaps, persistent volume claims, persistent volumes,
+- write about nodes and node status, pods and pod status, events,
+- auth-related ops like read/write about CertificateSigningRequests api, create TokenReviews and SubjectAccessReviews.
+To enable NodeAuthorizer, kubeapi-server must be started with `--authorization-mode=..,Node` or specify a node authorizer in config file .
+Any incoming request by user having system:node as CN cert name, are evaluated by the Node Authorizer which grants access.
+
+ABAC is difficult to implement and manage.
+
+RBAC relies on permissions, which grant action over resources, organized in roles. User are associated to roles to grand them rights about applying an action on a resource. This is the main
+method authorization is built in kubernetes.
+
+Webhook allows to externalize authorization, kube-apiserver routes requests to external service.
+
+kube-apiserver has default mode as 'always allow'. kube-apiserver allows to use multiple authorization mechanism at once: when request arrives that is denied if and only if all mechanisms fail
+to allow request. If one mechanism of them allows, then request is good to go.
+
+### RBAC
+This is the facto way to go into kubernetes authorization.
+
+Create a `Role` object:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["ConfigMap"]
+  verbs: ["create"]
+...
+```
+Using property `resourceName` allows to get a finer grain in defining grants:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+  resourceNames: ["pod1", "pod2"]
+...
+```
+
+Resources and verbs are kubernetes entities. Each `resource` type needs a specific rule.
+
+Role object is bound to user by `RoleBinding`:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devuser-developer-binding
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+```
+`Role` and `RoleBinding` can point to any namespace.
+
+As kubernetes objects, `kubectl get ..` and `kubectl describe ..` allow to check that objects.
+
+Useful: `kubectl auth can-i <some-verb> <some-resource-kind>` tells if I can do that. As administrator, you can impersonate user and test her permissions:
+```
+kubectl auth can-i <some-verb> <some-resource-kind> -as <some-user> -n <some-namespace>
+```
+option `--as` works with every commands.
+
+`kubectl config get-users` returns users.
+
+This is wrong I don't get why:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crud-pods
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crud-pods-dev-user
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: crud-pods
+  apiGroup: rbac.authorization.k8s.io
+```
+Solution uses imperative way:
+```
+kubectl create role developer --verb=list,create,delete --resource=pods
+kubectl create rolebinding dev-user-binding --user=dev-user --role=developer
+```
+I mistake both role and rolebinding names... ok.
+
+Useful command I forgot about: `kubectl edit role developer -n namespace`. Opens a 'vi', let's you update the resource and leave by ':wq'. Nice!
 
 <HERE>
 
