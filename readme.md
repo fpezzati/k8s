@@ -1526,7 +1526,41 @@ By command `kubectl create token <service-account-name>` a token is created for 
 
 To use a serviceaccount into a pod, you have to specify `serviceAccountName` as pod spec's property. You may choose not to automatically mount serviceaccounts in a pod by specifying `automountServiceAccountToken: false` in pod specs.
 
-<HERE>
+### Image Security
+In `image: nginx`, `nginx` tells the image/repository.
+In `something/nginx`, `something` indicates the user, `nginx` tells the image/repository.
+In `somedomain/something/nginx`, `somedomain` points the registry from where to pull/push the image, `something` indicates the user, `nginx` tells the image/repository.
+
+You may want restrict access to a specific registry by forcing login: `docker login somedomain` allows you to use credentials to access it. Docker will store a token in `~/.docker/config.json`.
+
+You may store registry credentials in kubernetes as secret:
+```
+kubectl create secret docker-registry <registry-secret-name> --docker-server=<registry-url> --docker-username=<username> --docker-password=<password> --docker-email=<user-email>
+```
+The newly created `<registry-secret-name>` must be provided in pod/deployments into `spec/containers`:
+```
+...
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - ...
+  - ...
+  imagePullSecrets:
+  - name: <registry-secret-name>
+...
+```
+
+### Docker Security
+Docker and Linux shares kernel. Processes have their namespaces and namespace is a boundary they cannot trepass, so containers are bound to a namespace and are isolated that way.
+
+Docker run as root. Use `docker run --user=1000 ..` to mitigate or set that in the Dockerfile.
+
+Container root user is not powerful as host root. Use `--cap-add` or `--cap-drop` to add or remove capabilities to docker user while running container.
+
+
+
+
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
