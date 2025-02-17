@@ -1507,6 +1507,25 @@ I mistake both role and rolebinding names... ok.
 
 Useful command I forgot about: `kubectl edit role developer -n namespace`. Opens a 'vi', let's you update the resource and leave by ':wq'. Nice!
 
+### Cluster Roles and Role Bindings
+Roles and role bindings are namespaced. Nodes for examples aren't namespaced, they're clusterroled. By command `kubectl api-resources --namespaced=true` you can see namespaced resources, using `kubectl api-resources --namespaced=false` resources that aren't namespaced.
+
+`ClusterRole` defines a set of grant about a not namespaced resource. That's pretty the same as `Role`.
+`ClusterRoleBinding` binds a cluster role to a user.
+
+You can create cluster role or bindings even in a namespace, they act globally anyway.
+
+### Service Accounts
+Are accounts used by non-humans that have to interact with kube-apiserver.
+
+`kubectl create serviceaccount <service-name>`. Command create a service account and a token bound to it that should be used to implement confidential interaction as 'Authentication: Bearer <token>'. Token is store into a `secret` object and mounted as volume into bounded applications.
+
+There is a `serviceaccount` named 'default' into every namespace.
+
+By command `kubectl create token <service-account-name>` a token is created for that service account. Each pod using that serviceaccoutn will mount a volume containing the 'default' serviceaccount token. Volume is mounted into `/var/run/secrets/kubernetes.io/serviceaccount` as three separate files; 'token' contains the token and it is a jwt one and it is provided by 'token request api'.
+
+To use a serviceaccount into a pod, you have to specify `serviceAccountName` as pod spec's property. You may choose not to automatically mount serviceaccounts in a pod by specifying `automountServiceAccountToken: false` in pod specs.
+
 <HERE>
 
 ### Security primitives
