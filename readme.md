@@ -1558,9 +1558,171 @@ Docker run as root. Use `docker run --user=1000 ..` to mitigate or set that in t
 
 Container root user is not powerful as host root. Use `--cap-add` or `--cap-drop` to add or remove capabilities to docker user while running container.
 
+### Security Contexts
+As in docker, `--user=..`, `--cap-add=..` or `--cap-drop` can be used to change kubernetes behavior. These settings can be used at container or pod level:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: someapp
+spec:
+  containers:
+  - ...
+  securityContext:
+    runAsUser: 1000
+```
+Pod applies security context to each container but are overridden by security context configured in a specific container:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: someapp
+spec:
+  containers:
+  - ...
+    securityContext:
+      runAsUser: 1001
+      capabilities:
+        add: [..]
+        drop: [..]
+```
 
+Tests: examples I wrote were wrong.. I don't get where to put `securityContext` attribute.. Provided solution does not use `kubectl edit` as I did in test but she gets the wide output, update it, delete the pod and apply the obtained yaml. Damn, quoting:
+>it is intended that the spec of a Pod could not be updated after its creation except for the containers.image field.
 
+That's why my changes didn't stay.
 
+### Network Policies
+Ingress traffic indicates infos incoming, Egress traffic indicate infos outgoing respect a certain resource.
+
+Pods can comunicate with each other despite they are on different nodes because they share the same virtual network by default.
+
+You can change default behavior by using network policies. NetworkPolicy is a kubernetes object you can link to a pod by using labels:
+```
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      somekey: somevalue
+    policyTypes:
+    - Ingress
+    ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            someotherkey: someothervalue
+      ports:
+      - protocol: TCP # do we need anything else?
+        port: 3306
+```
+
+Flannel does not support network policies: you can create them but they'll take no effect. Calico or Weave-net instead support.
+
+### Developing network policies
+By placing:
+```
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      somekey: somevalue
+    policyTypes:
+    - Ingress
+    ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            someotherkey: someothervalue
+        namespaceSelector:
+          matchLabels:
+            name: somenamespace
+      ports:
+      - protocol: TCP # do we need anything else?
+        port: 3306
+```
+we are enforcing a network rule to all pods that match `somekey: somevalue` among their labels. Rule ensure that only TCP incoming TCP traffic on port 3306 coming from a pod that match `someotherkey: someothervalue` as label is allowed. Replies to that incoming traffic does not need any additional rule to flow to requestor. Btw affected pods cannot query other services because network policy allows them to only do one thing, in this case reply to traffic that came form `someotherkey: someothervalue` pod on TCP on port 3306.
+
+Network policies are not namespaced, so the `namespaceSelector` come to an hand by allowing incoming traffic only for specific labelled namespaces.
+
+To enable external resources to do ingress traffic to a pod, we can use `ipBlock`:
+```
+...
+    - podSelector
+      ...
+    - ipBlock:
+      cidr: 192.168.5.4/32
+...
+```
+the `ingress:from` expects an array, Each element can describe a rule or a set of rules. From the perspective of incoming (or outgoing in case of egress rule) traffic, just an element of `ingress:from` must be satisfied to be allowed. If the element is a set of rules, traffic must satisfy all rules in that set to be allowed. It is a sort of logical 'disjunction of conjunctions'.
+
+This is a rule made of two sub-rules, traffic must satisfy both:
+```
+...
+- from:
+  - podSelector:
+      matchLabels:
+        someotherkey: someothervalue
+    namespaceSelector:
+      matchLabels:
+        name: somenamespace
+...
+```
+
+These are two rules, traffic must satisfy one:
+```
+...
+- from:
+  - podSelector:
+      matchLabels:
+        someotherkey: someothervalue
+  - namespaceSelector:
+      matchLabels:
+        name: somenamespace
+...
+```
+Small changes make big difference here.
+
+As for `ingress`, we can specify `egress` rules too:
+```
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      somekey: somevalue
+    policyTypes:
+    - Ingress
+    - Egress
+    ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            someotherkey: someothervalue
+        namespaceSelector:
+          matchLabels:
+            name: somenamespace
+      ports:
+      - protocol: TCP # do we need anything else?
+        port: 3306
+    egress:
+    - to:
+      - podSelector:
+        ...
+        namespaceSelector:
+        ...
+        ipBlock:
+        ...
+      ports:
+```
+egress rules allows/denies outgoing traffic.
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
