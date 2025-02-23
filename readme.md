@@ -1813,7 +1813,160 @@ When you install docker, it creates a folder tree:
 ```
 Docker stores files in layers: each line in dockerfile is a layer in docker image, it is incremental; docker uses that approach to save time and space.
 
-Once `docker build` is called the layers build an image and turn immutable. When `docker run` is run, a new layer of mutable data is created, made by all the files produced by the containerized service (e.g.: log files). This mutable layer is destroyed alongside the container.
+Once `docker build` is called the layers build an image and turn immutable. When `docker run` is run, a new layer of mutable data is created, made by all the files produced by the
+containerized service (e.g.: log files). This mutable layer is destroyed alongside the container. You cannot change the immutable files, by modifying them, a new copy is created in the
+additional layer created by the container (that's the COPY-ON-WRITE mechanism).
+
+When using volumes, docker creates a volume object in its `/var/lib/docker/volumes` directory: `docker run -v somefolder:/tmp some image`.The shared directory is mount in the container in
+its additional fs layer, this is called 'Volume Mount'. You can specify existing path to mount as volume, this is called 'Volume Bind`.
+
+Docker uses 'Storage drivers' to handle fs layers, docker uses which storage driver is available in operating system.
+
+### Volume Driver Plugins
+Docker uses 'Volume drivers' to handle volumes. Default volume driver is 'Local', there are many more. You may choose a volume driver by:
+```
+docker run -it --volume-driver somevolumedriver -v /usr/local/myfiles:/tmp myimage
+```
+
+### Container Storage Interface
+Kubernetes doesn't rely on docker to run contaienrs, he can use other contanerization tools like 'rkt' or 'cri-o', basically every container runtime that is compliant to 'CRI': Container
+Runtime Interface. For volumes, the Container Storage Interface is mandatory to be implemented to allow mounting and managing fs resources.
+
+### Volumes
+Pods are transient by nature. Providing a volume to a pod allows us to keep data pod may produce. Given:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dummypod
+spec:
+  container:
+  - image: alpine
+    name: dummy-alpine
+    command: ["/bin/sh", "-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/result.data;"]
+    volumeMounts:
+    - mounthPath: /tmp # where you can find files in container
+      name: some-volume-name
+  volumes:
+  - name: some-volume-name
+    hostPath:
+      path: /data # this is the host directory
+      type: Directory
+```
+Here pod and volume are defined in the same resource. It is better to separate them in different yml.
+
+### Persistent Volumes
+Are kubernetes objects to share node fs with pod container.
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  accessModes:
+    - ReadWriteOnce # allowed values: [ReadWriteOnce, ReadOnlyMany, ReadWriteMany]
+  capacity:
+    storage: 1Gi # disk space associate to volume
+  hostPath: # could be any other volume driver supported as CSI
+    path: /tmp # host folder to be shared as volume
+```
+
+### Persistent Volume Claims
+k8s objects that implement need for a persistent volume. Once you define a pvc, kube-apiserver looks for a pv to bind with. Pvc and pv are bound 1 to 1.
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+```
+If there is no perfect fit, pvc will be bound to pv who can satisfy required capacity; `my-pv` has storage bigger that required by `my-claim` so could be a good fit if there is no better
+match.
+
+When you delete a pvc, `kubectl delete persistentvolumeclaim my-claim`, if persistence volume has:
+- `persistentVolumeReclaimPolicy: Retain`, pv is kept but unavailable to other pvcs. This is the default behavior,
+- `persistentVolumeReclaimPolicy: Delete`, pv is deleted as well,
+- `persistentVolumeReclaimPolicy: Recycle`, pv is kept and available to other pvcs.
+
+I always forget that only containers part can be updated.
+
+Even `kubectl apply -f ...` doesn't work on existing pod if changes affect parts other than containers. You can use kubectl `replace --force -f your-file.yml`.
+
+Can't delete pvc if it is used by pod. Delete the pod and you'll also delete the pvc..
+
+### Using PVCs in Pods
+Once you create a pvc, use it in a pod definition file by specifying it's name under `persistentVolumeClaim` section in the `volumes` section like this:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myfrontend
+      image: nginx
+      volumeMounts:
+      - mountPath: "/var/www/html"
+        name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim
+```
+The same is true for `ReplicaSets` or `Deployments`. Add this to the pod template section of a `Deployment` on `ReplicaSet`.
+
+### Storage Class
+Operates dynamic provisioning.
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisioner: kubernetes.io/gce-pd
+```
+Provides automatically the pv to get the volume. So the pvc that want to use that storage should be like this:
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: google-storage
+```
+Usually used for external provisioners. Different provisioners may require or allow different parameters to be specified.
+
+Better for checkout which provisioners are available, even if exists for local fs.
+
+Question about storage class that doesn't support dynamic volume is broken.. How do I know that? From solution: sc PROVISIONER get info about type of volume provisioning, provisioner
+kubernetes.io/no-provisioner does not allow dynamic volumes.
+
+Sc I defined:
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: local-storage
+```
+
+## Networking
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
