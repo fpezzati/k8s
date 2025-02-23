@@ -1968,6 +1968,40 @@ spec:
 
 ## Networking
 
+### Prerequisite: switching routing
+Switch is a device capable of forwarding infos to proper host among all that are connected to. He knows that ip address is bound to some ethernet port, so when packet arrives, he forward it
+throught the right port. Switch deliver ip packets in a network: when an ip packet arrives, he knows to which port forward it.
+
+Router is a device capable of connecting networks together.
+
+Gateway is the way to reach what is outside the network. Usually a gateway play the role of 'default gateway': when you don't know who should receive a packet, then move it to the default
+gateway.
+
+Ip addresses are bound to network interfaces.
+
+Linux prevent packets to be moved from an ethernet to another one on the same device. Run: `echo 1 > /proc/sys/net/ipv4/ip_forward` and edit `/etc/sysctl.conf` accordingly to enable packets
+forwarding from ehternet to another. Run `echo 0 > /proc/sys/net/ipv4/ip_forward` and put `0` again in `/etc/sysctl.conf` to disable.
+
+`ip link`: list and modify network interfaces on host.
+`ip addr`: shows ip addresses assign to network interfaces.
+`ip addr add 192.168.1.10/24 dev eth0`: set ip addresses to interface.
+`ip route`: shows the routing table.
+`ip route add 192.168.1.0/24 via 192.168.2.1`: add entry into routing table.
+`cat /proc/sys/net/ipv4/ip_forward`: to check if packet forwarding is allowed among network interfaces on that host, 1 means yes, 0 means no.
+
+### Prerequisite: DNS
+Dns is a service capable of name resolution: he knows that a given name correspond to a specific ip address. When host doesn't recognize a name, he'll ask to dns service.
+
+On linux set `nameserver   some-ip-address` in `/etc/resolv.conf` to tell host who can help on resolving names. Host first looks in it's /etc/hosts file, then asks to dns. We can change this
+behavior by modifying `/etc/nsswitch.conf`.
+
+`www.something.org` is a domain name. `org` is the top level domain name, `something` is the name and `www` is the subdomain.
+
+So, resolving `www.something.org`, you will first look at host's `/etc/hosts` or `/etc/resolv.conf`, then you'll ask to some dns about top level domain, `.org`, then hierarchically to another
+dns about `something` and then `www`.
+
+`nslookup` is useful to query dns services about names, `dig` is similar.
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
