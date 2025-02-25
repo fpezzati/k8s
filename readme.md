@@ -2002,6 +2002,33 @@ dns about `something` and then `www`.
 
 `nslookup` is useful to query dns services about names, `dig` is similar.
 
+### Prerequisite: CoreDNS
+DNS services manage name resolution to ip, they are mandatory in large environments.
+
+This part is barely touched because not in CKA scope. Saying that, is better to improve this part with some basic knowledge of CoreDNS.
+
+### Prerequisite: Network Namespaces
+Linux uses namespaces to keep resources separate or bound to processes. A process is aware about resources in its namespace, knowing nothing about others.
+
+Once a container is created it is sealed in a namespace. He also has a network namespace: a virtual network interface with routing and arp tables.
+
+`ip netns` list existing network namespaces.
+`ip netns add some-name` creates a network namespace named `some-name`.
+`ip netns exec some-name ip link` or `ip -n some-name ip link` executes command `ip link` in network namespace `some-name`.
+`ip link add someveth-name type veth host-name someotherveth-name` creates a virtual ethernet connection between virtual network interfaces `some-name` and `someother-name`
+(unsure about that command).
+`ip link set someveth-name netns some-name` adds virutal network interface to specified network namespace.
+`ip -n some-name addr add 192.168.10.1 dev someveth-name` applies ip address to virtual network interface `someveth-name`.
+
+`ip link add v-net0 type bridge` adds new virtual network interface of type `bridge`. `ip link set dev v-net0 up` turns the network namespace up. Type `bridge` can be used by other virtual
+network interfaces in network namespace to link together and with the host: `ip link set someveth-name master v-net00` and `ip link set someotherveth-name master v-net01` then set virtual
+network interfaces to network namespaces, add ip addresses and turn everything up.
+
+Network interfaces in namespaces are aware of each other and aware of virtual bridge network on host. To reach something outside host you have to:
+`ip nets exec some-name ip route add 192.168.1.0/24 via <ip-address-of-bridge-virtual-network-interface>`
+
+You can easily see how cumbersome that is.
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
