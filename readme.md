@@ -2026,6 +2026,14 @@ network interfaces to network namespaces, add ip addresses and turn everything u
 
 Network interfaces in namespaces are aware of each other and aware of virtual bridge network on host. To reach something outside host you have to:
 `ip nets exec some-name ip route add 192.168.1.0/24 via <ip-address-of-bridge-virtual-network-interface>`
+Now to reach something outside host and get reply, you have to NAT and tell host to act as a gateway:
+`iptables -t nat -A POSTROUTING -s <ip-subnet-of-bridge-virtual-network> -j MASQUERADE`
+and to act as a default gateway to allow network namespaced network interfaces to reach internet, so:
+`ip netns exec some-name ip route add default via <ip-address-of-bridge-virtual-network-interface>`.
+
+To let entities outside our host to reach elements inside a network namespace we can rely again on iptables:
+`iptables -t nat -A PREROUTING --dport 80 --to-destination <ip-address-of-a-virtual-network-interface>:80 -J DNAT`
+this way we are telling host to route all traffic about port 80 to specific virtual network interface.
 
 You can easily see how cumbersome that is.
 
