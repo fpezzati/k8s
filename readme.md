@@ -1818,7 +1818,7 @@ containerized service (e.g.: log files). This mutable layer is destroyed alongsi
 additional layer created by the container (that's the COPY-ON-WRITE mechanism).
 
 When using volumes, docker creates a volume object in its `/var/lib/docker/volumes` directory: `docker run -v somefolder:/tmp some image`.The shared directory is mount in the container in
-its additional fs layer, this is called 'Volume Mount'. You can specify existing path to mount as volume, this is called 'Volume Bind`.
+its additional fs layer, this is called 'Volume Mount'. You can specify existing path to mount as volume, this is called `Volume Bind`.
 
 Docker uses 'Storage drivers' to handle fs layers, docker uses which storage driver is available in operating system.
 
@@ -2001,6 +2001,11 @@ So, resolving `www.something.org`, you will first look at host's `/etc/hosts` or
 dns about `something` and then `www`.
 
 `nslookup` is useful to query dns services about names, `dig` is similar.
+
+### Prerequisite: network namespaces
+Linux uses namespaces to create resources sets, so process can be bound to a specific set and have no insight about other resources.
+
+Network namespaces allow to seal containers visibility to their network resources.
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
