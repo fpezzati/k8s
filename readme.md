@@ -2174,6 +2174,10 @@ Services can be reached by their name while pods needs the fully qualified name:
 What is a root domain/zone for a cluster?
 Get a look to CoreDNS configmap, root domain is just after `kubernetes` plugin entry.
 
+To change pod which has been deployed by deploy, edit the deploy not the pod.
+
+`kubectl -n <namespace> exec <pod> -- <command>`.
+
 <HERE>
 
 ### Security primitives
