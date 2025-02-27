@@ -2118,14 +2118,63 @@ CNI plugin assings ip to containers. Usually CNI solution uses DHCP, Host-Local 
 Finding one weave pod and describing it will gives a bunch of infos about weave.
 
 ### Service networking
-Services are the backbone of high level communication among pods. Pods won't use ip to call each other because they're ephemeral, they rely on services who are in charge to act as load balancer and do service discovery.
+Services are the backbone of high level communication among pods. Pods won't use ip:port to call each other because they're ephemeral, they rely on services who are in charge to act as load balancer and do service discovery.
 
-Each service receives an ip address and a node. A service is accessible to all pods in cluster even if they're in different nodes, they are not bound to node, Service is an entity that traverse cluster.
+Each service receives an ip address and is set to expose a specific port. A service is accessible to all pods in cluster even if they're in different nodes, they are not bound to node, Service is an entity that traverse cluster. They don't get any namespace or network interfaces they're totally virtual.
+
+When service is created, kube-proxy pick an ip adress from a specific set of addresses and creates forwarding rules on each node in the cluster
 
 ClusterIP: only accessible inside cluster
 NodePort: creates a port forwarding rule that allows pod to be accessible. You usually use this to access application from outside cluster.
 
-kubelet
+kubelet gets changes from kube-apiserver, kube-proxy uses cni to gives ip address to service (by default, kube-proxy uses iptables's forward rule) by picking ip address from special set which is configured in kube-apiserver, `kube-apiserver --service-cluster-ip-range <default 10.0.0.0/24>`.
+
+A good source of infos is the kube-apiserver configuration: `/etc/kubernetes/manifests/kube-apiserver.yaml`.
+
+I don't get how to get ip address range used by nodes.
+Pick a node's ip address and check by `ip addr` to see its subnet.
+
+I don't get how to get ip address range used by pods.
+Check the cni pod and look at its logs for command `ipalloc` and get which range is using.
+
+I don't know how to get kube-proxy type.
+Get logs of a kube-proxy pod to see which type of kube-proxy is.
+
+I don't know how kube-apiserver ensures there is a kube-proxy on each node in the cluster.
+Looking at resources in cluster you can see no deployments or replicaset about kube-proxy pods but there is a daemonset about it, so daemonset is how it does.
+
+### Cluster DNS
+Kubernetes relies on DNS to solve pod names and he install one.
+
+When a service is created, an entry in DNS is made storing it name and ip address. If service `balancer` is deployed in a specific namespace, say `app`, then the dns will store an entry like:
+
+| hostname | namespace | type |     Root      | IP address |
+|:--------:|:---------:|:----:|:-------------:|:----------:|
+| balancer | app       | svc  | cluster.local | <ip add>   |
+
+So the service will be resolved with name `balancer.app.svc` or `balancer.app.svc.cluster.local`.
+
+For pods:
+
+| hostname | namespace | type |     Root      | IP address |
+|:--------:|:---------:|:----:|:-------------:|:----------:|
+| my-pod   | app       | pod  | cluster.local | <ip add>   |
+
+where `my-pod` is the value of pod's `spec.hostname` attribute. If no `spec.hostname` value is provided, then hostname in dns's table will be the pod's ip address with dashes instead of dots.
+
+### Core DNS in kubernetes
+Fore each pod that is created, an entry in its `/etc/resolv.conf` file is added with hostname and ip address of cluster's dns server. This way each pod can resolve pods ip addresses and reach each other.
+
+CoreDNS is deployed as two pods in kube-system namespace, its configuration stays in `/etc/coredns/Corefile`. In that file there are few plugins specified, the most important is the `kubernetes` plugin. Configuration file is passed as configmap to CoreDNS pods.
+
+CoreDNS pods rely on service to be reached, by default service is a `ClusterIP` with name `kube-dns`. This service is configured in each pod's `/etc/resolv.conf` file when pod is created.
+
+Services can be reached by their name while pods needs the fully qualified name: `<pod-host-name-or-dashed-ip-addr>.<namespace>.pod.cluster.local`.
+
+What is a root domain/zone for a cluster?
+Get a look to CoreDNS configmap, root domain is just after `kubernetes` plugin entry.
+
+<HERE>
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
