@@ -1818,7 +1818,7 @@ containerized service (e.g.: log files). This mutable layer is destroyed alongsi
 additional layer created by the container (that's the COPY-ON-WRITE mechanism).
 
 When using volumes, docker creates a volume object in its `/var/lib/docker/volumes` directory: `docker run -v somefolder:/tmp some image`.The shared directory is mount in the container in
-its additional fs layer, this is called 'Volume Mount'. You can specify existing path to mount as volume, this is called 'Volume Bind`.
+its additional fs layer, this is called 'Volume Mount'. You can specify existing path to mount as volume, this is called `Volume Bind`.
 
 Docker uses 'Storage drivers' to handle fs layers, docker uses which storage driver is available in operating system.
 
@@ -2036,6 +2036,96 @@ To let entities outside our host to reach elements inside a network namespace we
 this way we are telling host to route all traffic about port 80 to specific virtual network interface.
 
 You can easily see how cumbersome that is.
+
+### Prerequisite: docker networking
+When running containers we can choose different options about networking by `--network` option.
+
+Option `host` allows host and containers see each other because they share the host's network interface.
+
+Option `bridge` creates a bridge network namespace with containers within, so a virtual private network is built. Docker creates a `bridge` network named docker0 when installed, exactly as we run `ip link add docker0 type bridge`. When a container is started docker creates virtual network intefaces and virtual connection to link container's network namespace with `bridge` network.
+
+Docker also create iptables rules to NAT containers and allows port forwarding.
+
+### Prerequisite: CNI
+CNI is a standard interface to implement networking. This allows different providers offer their network solutions as plugins that conform with CNI: calico, weaveworks, flannel, vmware nsx etc...
+
+Docker doesn't implement CNI, he has its own standard knows as Container Network Model. You can use specific CNI by running container with `--network none` and add networking stuff yourself with your preferred CNI tool.
+
+### Cluster networking
+Kubernetes cluster is made of master and worker nodes. Each node has its own network interface, host name and mac-address.
+
+Master nodes should accept connections:
+- on port 6443 because of kube-apiserver,
+- on port 10250 because of kubelet,
+- on port 10259 because of kube-scheduler,
+- on port 10257 because of kube-controller-manager,
+- on port 2379 because of etcd.
+
+Worker nodes should accept connections:
+- on port 10250 because of kubelet (also in worker nodes),
+- on port 30000-32767 because of hosted services.
+
+ip netns
+ip -n cni-346e56ca-012c-2744-b8f2-586d63554345 link show
+ip addr (virtual networks are listed on host)
+ip addr also show network namespace
+
+cannot find mac adress assigned to node..
+tried with:
+- ip addr (and got the network namespace)
+- ip netns exec cni-c53e54ff-ca48-4c9d-7773-badf04610a43 ip link
+solution was to ssh into node01, `ssh node01`, and then do `ip address` to have all the infos about node's network interface, including its mac-address.
+
+`ip address show type bridge` lists all bridge type networks on host.
+
+`netstat -npl | grep -i program-name` to check which ports `program-name` uses.
+
+cannot get how many connections on port, maybe is a tricky question.
+Solution states `netstat -npa | grep -i program-name` shows all connections estabilished on ports and kept by `program-name`. So that wasn't a tricky question.
+
+### Pod networking
+Kubernetes does not provide a networking solution at pod level, cni you'll install does.
+
+Kubernetes states:
+- every pod should have an ip address,
+- every pod should be able to comunicate with pods in the same node,
+- every pod should be able to comunicate with pods hosted on other nodes without NAT.
+
+So, each node creates a bridge network and, for each pod, it creates a network namespace, two virtual network interfaces, one bound to pod network and the other bound to the bridge network. Each bridge network has its own subnet and then, accordingly to that subnet, pods will have ip addresses. In the end network interfaces are turned up. To let pods communicate across nodes, each bridge network uses node's network interface as default gateway.
+
+That's what CNI, along with other tasks, does in a way or another.
+
+### CNI in kubernetes
+CNI:
+- creates container network namespaces,
+- find network containers must attach to,
+- binary config in JSON format.
+
+Kubernetes cni binaries are hosted in `/opt/cni/bin` and configuration are in `/etc/cni/net.d/`.
+
+### CNI weaveworks (weaveworks shuts down)
+Weaveworks's CNI uses agents: agents are deployed and live in nodes sharing infos each other about which pods are hosted where they are. When a packet is sent, weaveworks agent in the node wrap it up, send to target agent accordingly to network topology he store. Target agent unwrap and move the packet to proper pod.
+
+Weaveworks shuts down, it would be good to get some infos about Calico.
+
+Kubectl describe node controlplane gives infos, even which service container runtime kubernetes is using. You can also use `ps -aux | grep -i kubelet | grep container-runtime`.
+
+CNI binaries are in `/opt/cni/bin/`. Here you can also find installed plugins, they're the binaries in that directory.
+
+### Ip address managment in weaves (weaveworks shuts down)
+CNI plugin assings ip to containers. Usually CNI solution uses DHCP, Host-Local or other custom solution.
+
+Finding one weave pod and describing it will gives a bunch of infos about weave.
+
+### Service networking
+Services are the backbone of high level communication among pods. Pods won't use ip to call each other because they're ephemeral, they rely on services who are in charge to act as load balancer and do service discovery.
+
+Each service receives an ip address and a node. A service is accessible to all pods in cluster even if they're in different nodes, they are not bound to node, Service is an entity that traverse cluster.
+
+ClusterIP: only accessible inside cluster
+NodePort: creates a port forwarding rule that allows pod to be accessible. You usually use this to access application from outside cluster.
+
+kubelet
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
