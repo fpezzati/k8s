@@ -2178,7 +2178,71 @@ To change pod which has been deployed by deploy, edit the deploy not the pod.
 
 `kubectl -n <namespace> exec <pod> -- <command>`.
 
-<HERE>
+### Ingress
+Allows user to reach application in cluster, a boundary component.
+
+Ingress = Ingress controller + Ingress resources.
+
+Ingress controller has a load balancer, kubernetes doesn't have a default one, you have to install by yourself. As load balancer, ingress controller relies on some load balancer like nginx,
+traefik, haproxy, etc. he use that load balancer/reverse proxy as inner engine, ingress controller itself is basically an interface.
+
+So, in order to get Ingress on your cluster you have to:
+- deploy a `Deployment` that uses nginx or traefik or kong or whatever, specifying container's `args` and `env` required,
+- deploy a `ConfigMap` that wrap configuration,
+- deploy a `Service` to expose Ingress outside the cluster,
+- deploy a `ServiceAccount`, `Role`, `ClusterRole`, `Rolebindings` objects to let ingress manage configuration changes (and much more).
+```
+```
+Ingress resources are:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: some-name
+spec:
+  backend:
+    serviceName: that-service-name
+    servicePort: that-service-port
+```
+a sort of forwarding rule. Can route by path or domain. Here is a by path example:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: some-name
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /resource1
+        backend:
+          serviceName: that-service-name
+          servicePort: that-service-port
+      - path: /resource2
+        ...
+```
+and this is by domain:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: some-name
+spec:
+  rules:
+  - host: some1.domain.com
+    http:
+      paths:
+      - backend:
+          serviceName: that-service-name
+          servicePort: that-service-port
+  - host: some2.domain.com
+    http:
+      paths:
+      - backend:
+          serviceName: that-service-name
+          servicePort: that-service-port
+  ...
+```
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
