@@ -2192,10 +2192,119 @@ So, in order to get Ingress on your cluster you have to:
 - deploy a `Service` to expose Ingress outside the cluster,
 - deploy a `ServiceAccount`, `Role`, `ClusterRole`, `Rolebindings` objects to let ingress manage configuration changes (and much more).
 ```
+# getting an ingress controller is far more easier by using the helm resource
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress-controller
+  namespace: ingress-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+    spec:
+      serviceAccountName: nginx-ingress-serviceaccount
+      containers:
+        - name: nginx-ingress-controller
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.25.1
+          args:
+            - /nginx-ingress-controller
+            - --configmap=$(POD_NAMESPACE)/nginx-configuration
+            - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
+            - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
+            - --publish-service=$(POD_NAMESPACE)/ingress-nginx
+            - --annotations-prefix=nginx.ingress.kubernetes.io
+          volumeMounts:
+          - name: custom-snippets
+            mountPath: /etc/nginx/custom-snippets/
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+      volumes:
+      - name: custom-snippets
+        configMap:
+          name: custom-snippets
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-configuration
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+data:
+  client-body-buffer-size: 60k
+  client-header-buffer-size: 16k
+  error-log-level: warn
+  http2-max-field-size: 16k
+  large-client-header-buffers: 4 16k
+  log-format-escape-json: "true"
+  log-format-upstream: '{"time":"$time_iso8601","remote_addr":"$remote_addr","proxy_protocol_addr":"$proxy_protocol_addr","proxy_protocol_port":"$proxy_protocol_port","x_forward_for":"$proxy_add_x_forwarded_for","remote_user":"$remote_user","host":"$host","request_method":"$request_method","request_uri":"$request_uri","server_protocol":"$server_protocol","status":$status,"request_time":$request_time,"request_length":$request_length,"bytes_sent":$bytes_sent,"upstream_name":"$proxy_upstream_name","upstream_addr":"$upstream_addr","upstream_uri":"$uri","upstream_response_length":$upstream_response_length,"upstream_response_time":$upstream_response_time,"upstream_status":$upstream_status,"http_referrer":"$http_referer","http_user_agent":"$http_user_agent","http_cookie":"$http_cookie"}'
+  location-snippet: "include /etc/nginx/custom-snippets/location-custom.conf;"
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: udp-services
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
 ```
+
 Ingress resources are:
 ```
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: some-name
@@ -2206,7 +2315,7 @@ spec:
 ```
 a sort of forwarding rule. Can route by path or domain. Here is a by path example:
 ```
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: some-name
@@ -2243,6 +2352,169 @@ spec:
           servicePort: that-service-port
   ...
 ```
+### Annotations and rewrite-target
+Ingress controller relies on external software, for example nginx. Nginx offers feature that someother loadbalancer/reverse-proxy does not, one of these features is url rewrite. Here:
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: myapi-ing
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite */tmp^ / break; # unsure this works, probably not, but this is not the point here
+spec:
+  rules:
+  - host: api.myapp.com
+    http:
+      paths:
+      - path: /auth/api
+        backend:
+          serviceName: myapi
+          servicePort: myapi-port
+```
+
+This is wrong:
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-wear-watch
+  namespace: ingress-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /stream
+        backend:
+          service:
+            name: video-service
+            port:
+              number: 8080
+        pathType: Prefix # what is pathType?
+```
+don't know why.
+
+I totally miss that. All that was required was just edit the existing Ingress to change path in one rule. I added a new rule out-of-the-box causing a mess.
+
+This is wrong too!
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-pay
+  namespace: ingress-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        backend:
+          service:
+            name: pay-service
+            port:
+              number: 8282
+        pathType: Prefix # what is pathType?
+```
+This was wrong because of its namespace!!! Why?
+
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+```
+
+Unable to fix all the issues in the big .yml containing nginx-ingress-controller deployment, service, configmap and namespace.
+
+### Introduction to Gateway API
+The new generation of ingress controller. Introduces new concepts and objects: GatewayClass, Gateway, HTTPRoute, TCPRoute, UDPRout etc.
+
+Like ingress, gateway needs a controller too.
+
+GatewayClass tells how a Gateway is implemented.
+```
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: example-class
+spec:
+  controllerName: example.com/gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: example-gateway
+spec:
+  gatewayClassName: example-class
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: example-httproute
+spec:
+  parentRefs:
+  - name: example-gateway
+  hostnames:
+  - "someurl.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /login
+    backendRefs:
+    - name: example-svc
+      port: 8080
+```
+Gateway API leverage differences about controllers in its routes:
+```
+apiVersion: gateway.networking.k8s.io/v1
+kind: httproutemetadata:
+  name: split-traffic
+spec:
+  parentRefs:
+  - name: app-gatewayClassNamerules:
+  - backendRefs:
+    - name: app-v1
+      port: 80
+      weight: 80
+    - name: app-v2
+      port: 80
+      weight: 20
+```
+It allows to switch between controllers without changing configuration.
+
+How to link services to gateway routes?
+
+Mandatory to improve this.
+
+<HERE>
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
