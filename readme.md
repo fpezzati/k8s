@@ -2473,6 +2473,9 @@ spec:
   - name: http
     protocol: HTTP
     port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -2511,10 +2514,56 @@ spec:
 It allows to switch between controllers without changing configuration.
 
 How to link services to gateway routes?
+By using `backendRefs` attribute in rule.
+```
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: frontend-route
+spec:
+  parentRefs:
+    - name: nginx-gateway
+  rules:
+  - matches:
+    - path:
+        value: "/path"
+    backendRefs:
+    - name: frontend-svc
+      port: 80
+```
 
-Mandatory to improve this.
+Mandatory to improve this lecture, Gateway API is the future.
 
-<HERE>
+Looks like ingress controller will live alongside Gateway API objects.
+
+Gateway's `allowedRules` indicates which namespaces can attach rules.
+
+## Design and Install a kubernetes cluster
+
+### Design a kubernetes cluster
+Depends on your needs. Nothing impacting on CKA.
+
+### Choosing kubernetes infrastructure
+Kubeadm expects have ready machines.
+
+### Configure high availability
+Multiple master nodes is mandatory in any production environment to avoid SPOF.
+
+In a multi master node scenario, kube-apiserver instances should stay behind a load balancer.
+
+ControllerManager, scheduler, kube-apiserver they don't work in parallel but in an active-standby mode by electing who is the active and keeping the others passive.
+
+ETCD can be in the master node or can stay outside the cluster. Using ETCD as external service spare him from failures in cluster (but you may experience outage or whatever).
+
+### ETCD in ha
+Etcd keeps the same data among all instances in its cluster. Instances elect a leader who is in charge to satisfy write requests, other instances are followers. When a write request land on
+a follower, it forward that request to the leader, then the leader spread the data change among all the followers assuring that the majority of the followers get that message.
+
+Etcd uses RAFT algorithm to elect leader. When leader gone, other followers re elect another leader.
+
+Etcd uses a N/2+1 quorum to says cluster works properly. Choose proper number of master nodes to get best from etcd cluster, if it loose quorum you lose the cluster.
+
+## Install kubernetes the kubeadm way
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
