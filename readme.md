@@ -2605,6 +2605,25 @@ I don't get how to create a cluster with multiple master nodes..
 
 ## Helm
 
+### Why helm
+Simplest app can turn into 5+ different objects in a kubernetes cluster, each one craftly configured. Managing that can be painful.
+
+Helm helps manage that objects as a whole app instead as a collection of yaml:
+- `helm install someapp`,
+- `helm upgrade someapp`,
+- `helm rollback someapp`,
+- `helm uninstall someapp`.
+
+Helm is a packet manager, sort of.
+
+### Installing helm
+You need a cluster, then type:
+```
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
