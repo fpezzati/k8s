@@ -2564,6 +2564,46 @@ Etcd uses RAFT algorithm to elect leader. When leader gone, other followers re e
 Etcd uses a N/2+1 quorum to says cluster works properly. Choose proper number of master nodes to get best from etcd cluster, if it loose quorum you lose the cluster.
 
 ## Install kubernetes the kubeadm way
+Bootstraps a kubernetes cluster.
+
+Steps:
+- provide machines, they'll become nodes,
+- choose who are masters and who are workers,
+- install containerd on all machines,
+- install kubeadm on each machine (official doc says kubelet, kubeadm and kubectl),
+- initialize master nodes on machines of choice,
+- setup POD network by joining worker nodes.
+
+### Deploy with kubeadm
+Having machines that are solid with minimum system requirements, install on each: containerd, kubeadm, kubelet.
+
+k8s 1.21 and later uses systemd as default. Container driver should be configured to use systemd or the installed alternative.
+
+It's a sort of 'read the docs and apply these commands'.
+
+Initialize master nodes: use `--control-plane-endpoint` to tell loadbalancer about your master node. This is the command:
+```
+kubeadm init --apiserver-advertise-address <node-ip-address> --pod-network-cidr "<a-subnet>" --upload-certs
+```
+Command does a lot of stuff. At the end, you have to pick configuration for your kubelet (copy a file to put in $HOME/.kube/config) and the command to run on each worker in order to join the cluster:
+```
+kubeadm join <master-node-ip-address> --token <some-token> --discovery-token-ca-cert-hash <some-hash>
+```
+If you have multiple master nodes cluster command differs a bit.
+
+Choose a pod network: installing cni is the last step, it may be calico, flannel, whatever of your choiche.
+
+Now join workers into cluster.
+
+Issues while installing kubeadm and kubelet
+```
+sudo apt-get install -y kubelet=1.32.0-1.1 kubeadm=1.32.0-1.1
+```
+apt-get doesn't resolve.. I guess I miss some initial passage.
+
+I don't get how to create a cluster with multiple master nodes..
+
+## Helm
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
