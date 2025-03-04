@@ -2724,6 +2724,46 @@ Helm manage charts 'at once', all docs that define a release (say app at specifi
 ### Kustomize problem statement & idealogy
 What's kustomize: a tool to do DRY on .yaml.
 
+Kustomize is structured with base and overlays. Base can be a common .yml file about a kubernetes object, overlays are segments of that file overriding a piece of configuration. So, kustomize
+structure is:
+```
+...
+|- base/ # basic configuration, common across all overlays
+|  |- kustomization.yaml
+|  |- nginx-depl.yaml
+|  |- service.yaml
+|  |- redis-depl.yaml
+|- overlays/ # customizations
+   |- dev/
+   |  |- kustomization.yaml
+   |  |- config-map.yaml
+   |- stage/
+   |  |- kustomization.yaml
+   |  |- config-map.yaml
+   |- prod/
+   |  |- kustomization.yaml
+   |  |- config-map.yaml
+```
+
+Kustomize takes the base and apply the overlay of choose to get the final manifest.
+
+Kustomize is shipped with kubectl.
+
+### Kustomize vs Helm
+Do they solve the same issue? I don't think so.. Helm is a different beast. He not only allows you to parametrize manifest through templates, he provides a service, a database of resources.
+
+### Installation
+Kustomize can be installed by script.
+
+### kustomization.yaml file
+`kustomization.yaml` file contains two things:
+- a list of manifests to handle,
+- the customization you want to apply to those manifests
+`kustomization.yaml` must stay in the root directory along the manifests.
+
+Command `kustomize build <folder-containing-manifests>` produces the final manifests: takes the base file and applies changes.
+
+<HERE>
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
