@@ -3065,6 +3065,17 @@ patch: |-
 
 In overlays you can also define new resources that will be added to what's define in 'base'.
 
+Can't patch deployment container to use another image and tag using Json6902 way. Damn, Overlay lab has no solution. I'll do it again. This was the right patch:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: api-deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: caddy
+```
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
