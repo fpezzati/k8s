@@ -2747,7 +2747,7 @@ structure is:
 
 Kustomize takes the base and apply the overlay of choose to get the final manifest.
 
-Kustomize is shipped with kubectl.
+Kustomize is shipped with kubectl: `kubectl apply -k ...`, the `-k` turns on kustomize.
 
 ### Kustomize vs Helm
 Do they solve the same issue? I don't think so.. Helm is a different beast. He not only allows you to parametrize manifest through templates, he provides a service, a database of resources.
@@ -2763,7 +2763,308 @@ Kustomize can be installed by script.
 
 Command `kustomize build <folder-containing-manifests>` produces the final manifests: takes the base file and applies changes.
 
-<HERE>
+### Kustomize output
+`kustomize build <folder-containing-manifests>` does not deploy anything. `kustomize build <folder-containing-manifests> | kubectl apply -f -` does, no big deal.
+
+It's recomended to use to delete resources too: `kustomize build <folder-containing-manifests> | kubectl delete -f -`. I guess, because of kustomize, you may be uncertain about which resources were previously produced by `build` command, so it is better to rely on kustomize on deletion too. I think because kustomize introduces a layer of indirection he also reduces readability.. Or maybe I am overthiking.
+
+### Kustomize apiversion & kind
+`kustomization.yaml` has:
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+...
+resources:
+  - <a-resource>
+  - <another-resource>
+```
+as its top. They're totally optional but it is better to kept them to tell which version of kustomize was intended to be used when resources were created.
+
+### Managing directories
+We can add folders and subfolders to better organize manifests, kustomize can leverage that complexity by specifying relative paths in `resources` array of `kustomization.yaml`.
+
+You can also provide `kustomization.yaml` in each subfolder, focused only on resources that stay in that folder. The root `kustomization.yaml` can now have `resources` array pointing to subfolders instead of the resources inside becaming leaner.
+
+### Common transformers
+What's a transformer? A tool that apply a change to a kustomize resource while it is build.
+
+Common transformers are:
+- commonLabel, adds label to kubernetes resources,
+- namePrefix/nameSuffix, adds prefix/suffix to resource names,
+- Namespace, adds a namespace to resources,
+- commonAnnotations, adds annotation to resources.
+
+Let's say we want to add a label to a resource, I add this to kustomization.yaml:
+```
+commonLabels:
+  org: some-label
+```
+the commonLabel transformer will add that label to kustomize resources:
+```
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org: some-label
+spec:
+...
+```
+To add:
+```
+namespace: some-n
+```
+the namespace transformer will be choosed for the job changing namespace to resources.
+
+Specifiyng this change:
+```
+namePrefix: dont-
+nameSuffix: -that
+```
+the namePrefix/nameSuffix transformer will change the `metadata.name` property adding `dont-` before value and `-that` after.
+
+CommonAnnotation transformation adds annotations to resources.
+
+### Image transformers
+We can specify this in out kustomization.yaml:
+```
+images:
+  - name: nginx
+    newName: haproxy
+```
+The image transformer will change image name to `haproxy` on each resource that uses `nginx`. Or use this:
+```
+images:
+  - name: nginx_alpine
+    newTag: 2.11
+```
+to tell image transformer to pick another tag.
+
+In general, scope of a kustomize.yaml is defined by which resources he has to manage.
+
+### Patches
+Another method to modify kubernetes resources. Provides a way to change attributes in a very precise way.
+
+Patch is organized by three parameters:
+- operation type, could be add, remove or replace,
+- target, indicates what resource will be affected, could be kind, version/group, name, namespace, labelSelector, annotationSelector,
+- value, what will take place.
+
+You can provide multiple 'target' to better point the desired resource.
+
+So, a kustomization.yaml like this:
+```
+...
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: new-deployment-name
+```
+will replace name value of a Deployment named 'dpl-name' to 'new-deployment-name'. The `path` attribute in `patch`, indicates in an unambiguos way which attribute to change by specifying its yaml path in document tree.
+
+There is another way to define patches, it is by 'strategic merge patch'. This is an example of the previous patch, in strategic merge way:
+```
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: new-deployment-name
+```
+this piece of manifest will be merged with all matching resources, so basically renames all deployments to 'new-deployment-name'. Maybe using the same data to specify changes and selection params is not the best...
+
+### Diffetent types of patches
+You can specify patches in kustomization.yaml or in separate files by specifying a path for the patch:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    path: patch-file.yml
+```
+`patch-file.yml` will contains the patch:
+```
+- op: replace
+  path: /metadata/name
+  value: new-deployment-name
+```
+The same for strategic-merge-patch.
+
+### Patches dictionary
+Let's use a patch to add an attribute:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/some-key
+        value: some-value
+```
+this will add a 'some-key: some-value' entry among attributes of indicated deployment. In a strategic-merge way:
+```
+patches:
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: dpl-name
+    spec:
+      template:
+        metadata:
+          labels:
+            some-key: some-value
+```
+How to remove (Json 6902 way):
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: remove
+        path: /spec/template/metadata/labels/some-key
+```
+That will remove label 'some-key' from pointed deployment. How to remove the strategic-merge way:
+```
+patches:
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: dpl-name
+    spec:
+      template:
+        metadata:
+          labels:
+            some-key: null
+```
+Setting to `null` marks the attribute to be removed by the patch.
+
+### Patches list
+To patch a list you can rely on position of attribute of choiche in the list itself. Here is a Json6902 way example:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0 # to get the first in the list
+        value:
+          name: haproxy
+          image: haproxy
+```
+As you may guess `0` is the element we want to patch index in the list. In this case patch changes name and image about the first container in manifest.
+
+Here is a strategic-merge way example:
+```
+patches:
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: dpl-name
+    spec:
+      template:
+        spec:
+          containers:
+            - name: nginx
+              image: haproxy
+```
+Patch uses no index, value will be merged.
+
+This one adds a new container by Json6902:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/- # tells to add element at the end of the list
+        value:
+          name: haproxy
+          image: haproxy
+```
+This one is the same by strategic-merge:
+```
+patches:
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: dpl-name
+    spec:
+      template:
+        spec:
+          containers:
+            - name: haproxy
+              image: haproxy
+```
+since there is no match for that container, it will be added to list.
+
+This one delete a container by Json6902:
+```
+patches:
+  - target:
+      kind: Deployment
+      name: dpl-name
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0 # tells to remove first element of the list
+```
+This is the same declined into strategic-merge way:
+```
+patches:
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: dpl-name
+    spec:
+      template:
+        spec:
+          containers:
+            - name: nginx
+              $patch: delete # tells to remove matching element by merge
+```
+you see it relies on the `$patch: delete` indication.
+
+### Overlays
+Overlays are layer that applies to a set of manifests when specific condition matches. Given this:
+```
+your-kustomize-folder
+|- base/
+|  |- kustomization.yaml
+|  |- ...
+|- overlays/
+   |- dev/
+   |  |- kustomization.yaml
+   |  |- ...
+   |- stage/
+   |  |- kustomization.yaml
+   |  |- ...
+   |- prod/
+      |- kustomization.yaml
+      |- ...
+```
+`kustomization.yaml` in base folder has nothing that we have already seen. `kustomization.yaml` in overlays's subfolders instead declares a patch that applies to a resource in the base folder:
+```
+bases:
+  - ../../base
+patch: |-
+  - op: replace
+    path: /spec/template/metadata/labels/some-key
+    value: some-value
+```
+
+In overlays you can also define new resources that will be added to what's define in 'base'.
+
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
