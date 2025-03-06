@@ -3077,6 +3077,86 @@ patches:
         value: caddy
 ```
 
+### Components
+Reusable pieces of configuration. Useful when optional feature needs to be used in a group of overlays.
+
+Let's say we have three overlays: A, B and C, and we want to add service1 only to overlay A and B. We cannot add service1 to base because it will be inherited by overlay C. Copy service1 manifest into A and B increase maintenance burden and is error prone.
+
+Give our kustomize folder a new shape:
+```
+your-kustomize-folder
+|- base/
+|- overlays/
+|  |- A/
+|  |- B/
+|  |- C/
+|- components/
+   |- service1/
+   |  |- kustomization.yaml
+   |  |- service1-depl.yaml # service1 deployment manifest
+   |  |- ...
+   |- service2/
+```
+`components` folder hosts components. Component is defined at least two files: a `kustomization.yaml` and a manifest; of course it can also contains patches and any other manifest we need to add..
+
+The service1 `kustomization.yaml` is nothing new:
+```
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - service1-depl.yaml
+
+patches:
+  - ...
+```
+
+The `service1-depl.yaml` is a manifest:
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service1
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: service1
+          image: nginx_alpine
+```
+
+To use a component in an overlay we have to define a specific import in the overlay's kustomization.yaml file; so, overlays A and B can simply import component service1 this way:
+```
+bases:
+  - ../../base
+components:
+  - ../../components/service1
+```
+
+## Troubleshooting
+
+### Application failure
+To troubleshoot applications, start from user and then move to cluster throught each layer:
+- do user interact with right layer?
+- is service ok? Is it configured correctly (selectors, ports, whatever)?
+- is pod ok? Check its events, use `kubectl log <pod>`.
+- is backing service ok? Is it configured correctly?
+- is backing service's pod ok?..
+
+Never drop objects without getting their yaml manifest.
+
+Always look for deployments before go for pods. If you change pod but it looks untouched, then there is a deployment that overrides your changes.
+
+`kubectl replace --force -f <new-file>` is handy.
+
+### Control plane failure
+Control plane components can be delivered as pods or services (service kubelet status).
+
+Can't update kube-scheduler-controlplane, don't get why. I can't do it by kubectl, I have to go after `/etc/kubernetes/manifests/kube-controller-manager.yaml`.
+
+Also `journalctl -u kube-apiserver` in case is delivered directly on host.
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
