@@ -3157,6 +3157,25 @@ Can't update kube-scheduler-controlplane, don't get why. I can't do it by kubect
 
 Also `journalctl -u kube-apiserver` in case is delivered directly on host.
 
+When pod doesn't get files that exists, check if volume is correctly mounted.
+
+Remember:
+- `alias k=kubectl` to shortcut command,
+- `source <(kubectl completion bash)` to get autocomplete about kubernetes.
+
+Pod named with `-controlplane` as suffix in `kube-system` namespace are static so their manifest can be found in `/etc/kubernetes/manifests/`.
+
+### Worker node failure
+Check node status, then use `describe`.
+
+Check for last node's heartbeat, also use `top` or `df -h` to check space and memory.
+
+Check the kubelet: `service kubelet status`, or by using `sudo journalctl -u kubelet`. Check kubelet certs.
+
+Once the node is fixed, run `ssh <the-node-to-restart> "service kubelet start"` to start node again.
+
+The `journalctl -u kubelet` is so hard to read, there is too much stuff. I didn't perform well here...
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
