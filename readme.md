@@ -3176,6 +3176,152 @@ Once the node is fixed, run `ssh <the-node-to-restart> "service kubelet start"` 
 
 The `journalctl -u kubelet` is so hard to read, there is too much stuff. I didn't perform well here...
 
+check nodes status. ssh the failing node. do systemctl status containerd or systemctl status kubelet to check what could be wrong. Do systemctl start kubelet to start service again and see
+what is happening.
+
+What's ephemeral-storage?
+
+Node's kubelet is configured into `/var/lib/kubelet/config.yaml` and in `/etc/kubernetes/kubelet.conf`. Btw `systemctl status kubelet` shows where service picks configurations.
+I change configuration in `/var/lib/kubelet/config.yaml`, now node addresses controlplane at port 6443. However I still see wrong port after service restart... Because I was doing no restart
+but start only. To get restart you have to stop then start service by `systemctl` or do `service restart kubelet`.
+
+### Network troubleshooting
+
+DNS
+---
+Kubernetes uses CoreDNS. CoreDNS is a flexible, extensible DNS server that can serve as the Kubernetes cluster DNS.
+
+Memory and Pods
+---------------
+In large scale Kubernetes clusters, CoreDNS's memory usage is predominantly affected by the number of Pods and Services in the cluster. Other factors include the size of the filled DNS answer
+cache, and the rate of queries received (QPS) per CoreDNS instance.
+
+Kubernetes resources for coreDNS are:
+- a service account named coredns,
+- cluster-roles named coredns and kube-dns,
+- clusterrolebindings named coredns and kube-dns,
+- a deployment named coredns,
+- a configmap named coredns,
+- a service named kube-dns.
+
+While analyzing the coreDNS deployment you can see that the the Corefile plugin consists of important configuration which is defined as a configmap.
+
+Port 53 is used for for DNS resolution.
+```
+kubernetes cluster.local in-addr.arpa ip6.arpa {
+   pods insecure
+   fallthrough in-addr.arpa ip6.arpa
+   ttl 30
+}
+```
+This is the backend to k8s for cluster.local and reverse domains.
+```
+proxy . /etc/resolv.conf
+```
+Forward out of cluster domains directly to right authoritative DNS server.
+
+Troubleshooting issues related to coreDNS
+-----------------------------------------
+If you find CoreDNS pods in pending state first check network plugin is installed.
+
+Check if coredns pods have `CrashLoopBackOff` or `Error` state.
+
+If you have nodes that are running SELinux with an older version of Docker you might experience a scenario where the coredns pods are not starting.
+To solve that you can try one of the following options:
+- upgrade to a newer version of Docker,
+- disable SELinux,
+- modify the coredns deployment to set allowPrivilegeEscalation to true:
+  ```
+  kubectl -n kube-system get deployment coredns -o yaml | \
+    sed 's/allowPrivilegeEscalation: false/allowPrivilegeEscalation: true/g' | \
+    kubectl apply -f -
+  ```
+- another cause for CoreDNS to have `CrashLoopBackOff` is when a CoreDNS Pod deployed in Kubernetes detects a loop. There are many ways to work around this issue, some are listed here:
+  - add the following to your kubelet config yaml: `resolvConf: <path-to-your-real-resolv-conf-file>` This flag tells kubelet to pass an alternate resolv.conf to Pods. For systems using
+    `systemd-resolved`, `/run/systemd/resolve/resolv.conf` is typically the location of the "real" resolv.conf, although this can be different depending on your distribution,
+  - disable the local DNS cache on host nodes, and restore /etc/resolv.conf to the original,
+  - a quick fix is to edit your Corefile, replacing forward . `/etc/resolv.conf` with the IP address of your upstream DNS, for example forward . 8.8.8.8. But this only fixes the issue for
+    CoreDNS, kubelet will continue to forward the invalid resolv.conf to all default dnsPolicy Pods, leaving them unable to resolve DNS.
+
+
+If CoreDNS pods and the kube-dns service is working fine, check the kube-dns service has valid endpoints.
+```
+kubectl -n kube-system get ep kube-dns
+```
+If there are no endpoints for the service, inspect the service and make sure it uses the correct selectors and ports.
+
+Kube-Proxy
+---------
+`kube-proxy` is a network proxy that runs on each node in the cluster. kube-proxy maintains network rules on nodes. These network rules allow network communication to the Pods from network
+sessions inside or outside of the cluster.
+
+In a cluster configured with `kubeadm`, you can find `kube-proxy` as a `daemonset`.
+
+`kubeproxy` is responsible for watching services and endpoint associated with each service. When the client is going to connect to the service using the virtual IP, the kubeproxy is
+responsible for sending traffic to actual pods.
+
+If you run a kubectl describe ds kube-proxy -n kube-system you can see that the kube-proxy binary runs with following command inside the kube-proxy container.
+Command:
+```
+/usr/local/bin/kube-proxy
+--config=/var/lib/kube-proxy/config.conf
+--hostname-override=$(NODE_NAME)
+```
+So it fetches the configuration from a configuration file ie, /var/lib/kube-proxy/config.conf and we can override the hostname with the node name of at which the pod is running.
+
+In the config file we define the clusterCIDR, kubeproxy mode, ipvs, iptables, bindaddress, kube-config etc.
+
+Troubleshooting issues related to kube-proxy. Steps:
+- Check kube-proxy pod in the kube-system namespace is running.
+- Check kube-proxy logs.
+- Check configmap is correctly defined and the config file for running kube-proxy binary is correct.
+- kube-config is defined in the config map.
+
+Check kube-proxy is running inside the container:
+```
+# netstat -plan | grep kube-proxy
+tcp        0      0 0.0.0.0:30081           0.0.0.0:*               LISTEN      1/kube-proxy
+tcp        0      0 127.0.0.1:10249         0.0.0.0:*               LISTEN      1/kube-proxy
+tcp        0      0 172.17.0.12:33706       172.17.0.12:6443        ESTABLISHED 1/kube-proxy
+tcp6       0      0 :::10256                :::*                    LISTEN      1/kube-proxy
+```
+
+How do I restart kube-proxy?
+
+What exactly is a daemonset pod?
+
+## JSON Path
+
+### Introduction to YAML
+It's a file format for data rapresentation.
+
+yaml array elements could be dictionaries, so you can add `key: value` pair straightforward.
+
+### JSON Path
+`$` is root of document in query language.
+
+Query result is always an array.
+
+`$[?(@ > 40)]` returns all the elements that value is greater than 40. `?` means querying and `@` means 'each element'.
+
+`$.car.wheels[?(@.location == "rear-right")].model`, for each car, query pick model of the 'rear-right' wheel.
+
+### JSON Path usecases kubectl
+`kubectl get pods -o=jsonpath='{$.items[0].spec.containers[0].image}'`
+
+You can also add multiple jsonpath queries, `kubectl get pods -o=jsonpath='{$...}..{$..}'` to get results altogether. You can add basic format by adding:
+- `{"\n"}` to add newline between results,
+- `{"\t"}` to add tabs.
+
+You can use loop statements for better formatting: `kubectl get pods -o=jsonpath='{range $.items[*].spec.containers[0].image}{"\t"}{$.status.capacity.cpu}{"\n"}{end}'`
+`{range}` and `{end}` determines start and end of the loop statement.
+
+`kubectl get pods -o=custom-columns=<column-name>:<jsonpath-query>` adds custom column for each query.
+
+kubectl `--sort-by=...` option does its magic even in jsonpath queries.
+
+### Advanced kubectl commands
+
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
 
