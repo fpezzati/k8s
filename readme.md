@@ -3313,14 +3313,15 @@ You can also add multiple jsonpath queries, `kubectl get pods -o=jsonpath='{$...
 - `{"\n"}` to add newline between results,
 - `{"\t"}` to add tabs.
 
-You can use loop statements for better formatting: `kubectl get pods -o=jsonpath='{range $.items[*].spec.containers[0].image}{"\t"}{$.status.capacity.cpu}{"\n"}{end}'`
-`{range}` and `{end}` determines start and end of the loop statement.
+You can use loop statements for better formatting:
+```
+kubectl get pods -o=jsonpath='{range $.items[*].spec.containers[0].image}{"\t"}{$.status.capacity.cpu}{"\n"}{end}'
+```
+`{range ...}` and `{end}` determines start and end of the loop statement.
 
 `kubectl get pods -o=custom-columns=<column-name>:<jsonpath-query>` adds custom column for each query.
 
 kubectl `--sort-by=...` option does its magic even in jsonpath queries.
-
-### Advanced kubectl commands
 
 ### Security primitives
 First secure your hosts: use SSH key based authentication. kube-apiserver must be kept secure by configuring proper authentication and authorization services.
