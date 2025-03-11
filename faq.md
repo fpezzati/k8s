@@ -1,5 +1,35 @@
 # FAQ and relevant tests
 
+## Kubeconfig
+A `~/.kube/config` example file:
+```
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: ...
+    server: ...
+  name: cluster1
+contexts:
+- context:
+    cluster: cluster1
+    user: cluster_user1
+  name: contex1
+current-context: contex1
+kind: Config
+preferences: {}
+users:
+- name: cluster_user1
+  user:
+    client-certificate-data: ...
+    client-key-data: ...
+```
+`certificate-authority-data`: cluster CA certificate.
+`server`: kube-apiserver endpoint.
+`client-certificate-data`: user certificate.
+`client-key-data`: user private key.
+
+You can add clusters, users and contexts to bound them. To switch context: `kubectl config use-context context1`.
+
 ## Lightning lab
 
 ### Upgrade a kubernetes cluster using kubeadm

@@ -867,7 +867,7 @@ data:
   APP_COLOR: blue
   APP_MODE: prod
 ```
-an then using command `kubectl create -f config-map.yml`.
+using command `kubectl create -f config-map.yml`.
 
 `kubectl get configmaps` returns all the configmaps in the default namespace.
 
