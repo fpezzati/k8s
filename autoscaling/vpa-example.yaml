@@ -1,0 +1,13 @@
+#VPA must be installed separately and it is provider driven.
+#single replicas apps are ideal candidate for VPA
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: vpa-demo
+spec:
+  targetRef:
+  apiVersion: apps/v1
+  kind: Deployment
+  name: vpa-managed-deployment
+updatePolicy:
+  updateMode: Auto #[Recreate|Initial|Off]

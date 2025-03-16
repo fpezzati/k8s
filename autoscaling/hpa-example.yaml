@@ -1,0 +1,46 @@
+#10. Configure Horizontal Pod Autoscaler (HPA)
+#Instructions:
+#
+#    Create a Horizontal Pod Autoscaler (HPA) for the deployment named api-deployment located in the api namespace.
+#    The HPA should scale the deployment based on a custom metric named requests_per_second, targeting an average value of 1000 requests per second across all pods.
+#    Set the minimum number of replicas to 1 and the maximum to 20.
+#
+#Note: Deployment named api-deployment is available in api namespace.
+#
+#HPA finds its place inside deployment's manifest we want to autoscale horizontally.
+#Let's suppose mentioned api-deployment is this:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-demo
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: app-demo
+          image: nginx
+          ports:
+            - containerPort: 80
+---
+#I need a metric server!
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-demo
+  minReplicas: 1
+  maxReplicas: 20
+
+type: Pods
+pods:
+  metric:
+    name: packets-per-second
+  target:
+    type: AverageValue
+    averageValue: 1k
