@@ -62,4 +62,5 @@ Deploy should indicate `resources.requests.memory="100Mi"` to specify RAM requir
 
 kubelet collects metrics from pods, kube-apiserver collects metrics from metrics server. kubelet also send collected metrics to kube-apiserver and hpa fetch data from there in order to decide about increasing or decreasing pods number.
 
-Memory and cpu are basic metrics we can get without effort.
+I have to dig deeper here. Resources:
+- https://medium.com/swlh/building-your-own-custom-metrics-api-for-kubernetes-horizontal-pod-autoscaler-277473dea2c1
