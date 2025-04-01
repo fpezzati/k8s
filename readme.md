@@ -1032,6 +1032,55 @@ Commands used during test:
 ### Self healing applications
 ReplicaSet and ReplicationController ensure application has the desired number of pods at all times.
 
+### Introduction to autoscaling
+Vertical scaling: add or remove resources to a host or instances.
+
+Horizontal scaling: add or remove hosts or instances.
+
+Horizontal scaling cluster means to add or remove nodes to cluster. Vertical scaling cluster means to add or remove resources to a node in the cluster. Commands `kubeadm join ..` and `kubectl drain ..` are useful tools here.
+
+Horizontal scaling workload means to add or remove pods to cluster. Vertical scaling workload means to add or remove resources to a pod in the cluster. Commands `kubectl scale ..` and `kubectl edit ..` or `kubectl patch ..` are useful tools here.
+
+### HPA
+Hpa is the automated way to horizontal scaling workload in cluster.
+
+It is mandatory to install and run a metric server to get metrics to scale on.
+
+Hpa add or remove pods based on cpu, memory or custom metrics.
+
+`kubectl autoscale deployment your-deploy --min=2 --max=10` scales pod imperatively.
+
+A declarative example:
+```
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  creationTimestamp: null
+  name: hpa-your-deploy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-deploy
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resources:
+    - name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+```
+
+About metric server:
+- you have to install it,
+- provides metrics about cpu and memory usage out of the box,
+- can fetch other internal metrics by custom metrics adapters,
+- can fetch other external metrics by using external adapters.
+
+
+
 ## Cluster manteinance
 
 ### OS upgrade
@@ -2498,7 +2547,7 @@ spec:
 Gateway API leverage differences about controllers in its routes:
 ```
 apiVersion: gateway.networking.k8s.io/v1
-kind: httproutemetadata:
+kind: HTTPRoute
   name: split-traffic
 spec:
   parentRefs:

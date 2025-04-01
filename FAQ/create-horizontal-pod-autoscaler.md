@@ -33,34 +33,51 @@ This is basically the setup you need to scale on memory or cpu resources: when c
 
 Deploy should indicate `resources.requests.cpu="10m"` to specify cpus required or hpa won't have anything to check against while decide to scale.
 
-### Configure HPA to scale on custom metrics
-Metrics are specified in the `spec.metrics` array in hpa manifest. Custom metrics require a metric server to collect such informations. Metric server must be installed, k8s has its own solution that can be found here: `https://github.com/kubernetes-sigs/metrics-server` or by helm chart.
-
-Let's say we want to scale our pod to keep memory usage below 65%:
+### Going into HPA metrics details
+HPA works with: metrics, custom metrics, external metrics
+HPA works with pod resources:
 ```
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: backend-hpa
-  namespace: backend
+  name: nginx-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: deployment-to-autoscale
+    name: nginx-alpine-deploy
   minReplicas: 3
   maxReplicas: 15
   metrics:
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 65
+  - type: Pod
+    pods:
+      metric:
+      ...
 ```
-Deploy should indicate `resources.requests.memory="100Mi"` to specify RAM required or hpa won't have anything to check against while decide to scale.
+and object resources:
+```
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-alpine-deploy
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+  - type: Object
+    object:
+      metric:
+      ...
+```
 
-kubelet collects metrics from pods, kube-apiserver collects metrics from metrics server. kubelet also send collected metrics to kube-apiserver and hpa fetch data from there in order to decide about increasing or decreasing pods number.
+metric-server gives cpu and memory metrics about pods and worker nodes. Metrics are specified in the `spec.metrics` array in hpa manifest. Custom metrics require a metric server to collect such informations. Metric server must be installed, k8s has its own solution that can be found here: `https://github.com/kubernetes-sigs/metrics-server` or by helm chart.
 
-I have to dig deeper here. Resources:
-- https://medium.com/swlh/building-your-own-custom-metrics-api-for-kubernetes-horizontal-pod-autoscaler-277473dea2c1
+Metrics are too wide to elaborate here, doc is also kinda surfacing the argumen. This is one of the most complete metrics list:
+
+https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/pod-metrics.md
+
+repo seems to have other useful resources.
