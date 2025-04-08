@@ -16,6 +16,13 @@ Components of a worker node are:
 - kubelet: an agent running on each node. Listens for instructions from the api-server, deploys or destroys containers on node.
 - kube-proxy: allows comunication between containers
 
+### Docker vs ContainerD
+Kubernetes conforms with the OCI specs by defining a ContainerRuntimeInterface, or CRI; this means that kubernetes can operate with every container runtime who complains with OCI and so with CRI.
+
+ContainerD is part of Docker itself, it is a complete project itself, a container runtime which complains with OCI. You can install ContainerD with Docker or by itself. ContainerD comes with a tool, `ctr`, to perform container activities. It is not that frendly, `nerdctl` is far better, quite similar to Docker cli but with some features added.
+
+`crictl` is another CLI to interact with CRI compliant runtimes. Not that good, quite a debugging tool.
+
 ### ETCD
 Distributed key-value store. etcd is the daemon (listening on port 2379 by default), etcdctl is the default client.
 `./etcdctl set key1 value1` stores... you get it, don't you? ETCD uses gRPC (RPC? in 2021?).
