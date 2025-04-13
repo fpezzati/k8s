@@ -26,6 +26,8 @@ VPA mainly works in four modes:
 - 'Initial': assign resources once and never change them,
 - 'Off': VPA doesn't perform any action but calculates recomendations and log them for administrators to check.
 
+### What about resourcePolicy
+
 ### Examples
 Basic:
 ```
@@ -45,7 +47,7 @@ spec:
 
 A more significative one:
 ```
-piVersion: "autoscaling.k8s.io/v1"
+apiVersion: "autoscaling.k8s.io/v1"
 kind: VerticalPodAutoscaler
 metadata:
   name: hamster-vpa
@@ -80,3 +82,10 @@ spec:
 ```
 
 Reference: https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/docs
+
+
+https://kubernetes.io/docs/concepts/workloads/pods/autoscaling/vertical-pod-autoscaler/
+https://learnk8s.io/vertical-pod-autoscaler
+https://banzaicloud.com/blog/k8s-vpa/
+https://kublr.com/blog/kubernetes-vertical-pod-autoscaler/
+https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
