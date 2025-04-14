@@ -3,6 +3,33 @@ I thought I was confident with helm but I was wrong.
 
 Rearrangin stuff.
 
+Helm is a package manager: instead of a bunch of .yaml manifests, with helm you can manage them as a single resource.
+
+Helm does a lot of things so he offers a lot of commands.
+
+## Core concepts
+Helm is built around a few concepts.
+
+### Chart
+collection of yml manifests that define an application. Helm charts are organized into values and templates yaml.
+
+helm repo list shows repos.
+
+### Release
+an instance of a chart running on cluster.
+
+### Repo
+a place where charts are stored, more or less a repo in a docker hub.
+
+`helm repo list`: shows all known repos.
+
+`helm repo update <repo-name>`: update repo's metadata.
+
+There is no bound between repo and chart. A repo can host multiple charts, a chart can came from anywhere. Command `helm search repo <keyword>` finds repos by keyword, could be the only way to point chart to repo.. So, there is no way to find original url of a chart, you guess and hope for best (that's incredible to me) unless chart was signed.
+
+## helm install chart
+There are a few ways of installing charts.
+
 ## Things I am bad at with helm
 Given a local chart repo, do some maintenance, check if there are problems during installation and fix them before install the chart.
 
