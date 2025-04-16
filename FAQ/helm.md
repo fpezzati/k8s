@@ -11,15 +11,15 @@ Helm does a lot of things so he offers a lot of commands.
 Helm is built around a few concepts.
 
 ### Chart
-collection of yml manifests that define an application. Helm charts are organized into values and templates yaml.
-
-helm repo list shows repos.
+Collection of yml manifests that define an application. Helm charts are organized into values and templates yaml.
 
 ### Release
-an instance of a chart running on cluster.
+An instance of a chart running on cluster.
 
 ### Repo
-a place where charts are stored, more or less a repo in a docker hub.
+A place where charts are stored, more or less a repo in a docker hub.
+
+helm repo list shows repos.
 
 `helm repo list`: shows all known repos.
 
@@ -28,27 +28,35 @@ a place where charts are stored, more or less a repo in a docker hub.
 There is no bound between repo and chart. A repo can host multiple charts, a chart can came from anywhere. Command `helm search repo <keyword>` finds repos by keyword, could be the only way to point chart to repo.. So, there is no way to find original url of a chart, you guess and hope for best (that's incredible to me) unless chart was signed.
 
 ## helm install chart
-There are a few ways of installing charts.
+There are a few ways of installing charts:
+- by chart reference: helm install mymaria example/mariadb,
+- by path to a packaged chart: helm install mynginx ./nginx-1.2.3.tgz,
+- by path to an unpacked chart directory: helm install mynginx ./nginx,
+- by absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz,
+- by chart reference and repo url: helm install --repo https://example.com/charts/ mynginx nginx,
+- by OCI registries: helm install mynginx --version 1.2.3 oci://example.com/charts/nginx.
 
 ## Things I am bad at with helm
-Given a local chart repo, do some maintenance, check if there are problems during installation and fix them before install the chart.
 
-Given a local chart repo, install a new version of that chart.
+### Given a local chart repo, do some maintenance, check if there are problems during installation and fix them before install the chart.
 
-Perform a rollback of a deployed local chart.
+### Given a local chart repo, install a new version of that chart.
 
-Uninstall a release.
+### Perform a rollback of a deployed local chart.
 
-Find url of specific chart.
+### Uninstall a release.
 
-Difference between chart and hub.
+### Find url of specific chart.
 
-Update a local helm chart with newer version recently released.
+### Difference between chart and hub.
 
-Update a given repo.
+### Update a local helm chart with newer version recently released.
 
-Which relation bounds repo to release?
+### Update a given repo.
 
+### Which relation bounds repo to release?
+
+Stuff from readme.md..
 ### Why helm
 Simplest app can turn into 5+ different objects in a kubernetes cluster, each one craftly configured. Managing that can be painful.
 
