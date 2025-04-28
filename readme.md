@@ -281,7 +281,7 @@ Commands used during test:
 - kubectl get pods -o wide --all-namespaces,
 - kubectl get svc -n dev (kubectl returns all the services in namespace dev).
 
-### services
+## Services
 Enable comunication between cluster's components and components and the world outside.
 
 Each node in the cluster has an IP, we can always ssh into a node.
