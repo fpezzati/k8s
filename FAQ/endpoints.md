@@ -37,3 +37,5 @@ endpoints:
       - "10.1.2.3"
 ```
 `metadata.labels.kubernetes.io/service-name` must match the name of the service this `EndpointSlice` is supporting.
+
+`EndpointSlice` allows to match a service with a set of ip addresses (IPv4 or IPv6), these objects are created and maintained automatically by kubernetes. There are very few needs of them for admins, manual management is discouraged.

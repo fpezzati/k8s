@@ -40,21 +40,36 @@ There are a few ways of installing charts:
 
 ### Given a local chart repo, do some maintenance, check if there are problems during installation and fix them before install the chart.
 
-### Given a local chart repo, install a new version of that chart.
+### Given a local chart repo, install a new version of specific chart.
+Straightforward: `helm repo update repo-name` will pull latest from that repo, including chart updates.
 
 ### Perform a rollback of a deployed local chart.
 
 ### Uninstall a release.
+This is straightforward:
+- find the release you want to uninstall by running `helm list`,
+- then execute `helm uninstall release-you-find-earlier` to remove that release.
 
 ### Find url of specific chart.
+There is no reference between charts and repos, even if you get that chart from that repo. The only way to match repos and charts is to perform a search by keywords related to the chart: `helm search repo some-word --list-repo-url` and cross your fingers, amongs all the matches (they're not that much tbh) there is the one you're looking for and its url.
 
-### Difference between chart and hub.
+### Differences between repo and hub
+Command `helm search hub some-word` finds across all charts helm's ArtifactHub hosts. Repo is a remote collection of charts you add to your helm client, `helm search repo some-word` will search among repos the client knows.
 
 ### Update a local helm chart with newer version recently released.
-
-### Update a given repo.
+Straightforward: `helm repo update repo-name` will pull latest from that repo, including chart updates.
 
 ### Which relation bounds repo to release?
+Release is the instance of a chart you download from a repo. In a few steps:
+- `helm list -A` and you'll find out what releases are running in your cluster throught all namespaces,
+- `helm search repo release-name-you-found-earlier` to get from which repo the release's chart came from.
+Remember: helm resources are namespaced.
+
+helm repo list
+helm repo update lvm-crystal-apd
+helm search repo lvm-crystal-apd (find where chart is)
+helm show chart lvm-crystal-apd/fluent-bit (gives you info about the chart)
+helm upgrade lvm-crystal-apd lvm-crystal-apd/fluent-bit --version=0.48.5 --set replicaCount=3 --set kind=Deployment -n crystal-apd-ns
 
 Stuff from readme.md..
 ### Why helm
