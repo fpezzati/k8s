@@ -27,6 +27,9 @@ helm repo list shows repos.
 
 There is no bound between repo and chart. A repo can host multiple charts, a chart can came from anywhere. Command `helm search repo <keyword>` finds repos by keyword, could be the only way to point chart to repo.. So, there is no way to find original url of a chart, you guess and hope for best (that's incredible to me) unless chart was signed.
 
+### Hub
+What the hell is a hub? Where repo are stored. Ok, but how to get a repo, which has its own url, from a hub?
+
 ## helm install chart
 There are a few ways of installing charts:
 - by chart reference: helm install mymaria example/mariadb,
@@ -185,3 +188,49 @@ Helm manage charts 'at once', all docs that define a release (say app at specifi
 `helm history` gives more informations about release lifecycle.
 `helm rollback` takes release to its previous revision but it does not go back, it spin a newer revision number. Rollback does not restore volumes, they'll stay the same.
 `helm upgrade` may need some grants to perform upgrade of specific charts.
+
+### Add a repo and get template from a chart in there
+To find a repo about kafka run `helm find hub kafka`, it gives you a lot of results, but they all are useless:
+```
+https://artifacthub.io/packages/helm/bitnami/kafka	32.2.15                    	4.0.0                   	Apache Kafka..
+```
+Try instead run `helm find hub kafka --list-repo-url` to get useful info:
+```
+https://artifacthub.io/packages/helm/bitnami/kafka	32.2.15                    	4.0.0                   	Apache Kafka is a distributed streaming platfor...	https://charts.bitnami.com/bitnami
+...
+```
+Stupid helm, first url he provides is the hub url, useless if you want to install charts. To do so you have to get the right property adding flag `--list-repo-url`, which makes the second url to appear. That is the one you have to use to install a chart!
+
+Add it as repo:
+```
+helm repo add bitnami https://charts.bitnami.com/bitnami
+```
+Repos are stored in `~/.config/helm/repositories.yaml`.
+
+Now let's get the chart. Command `helm install` allows you to install a chart, but how to do that from a repo? Command should be `helm install kafka-chart-name-of-choice kafka-chart-name --repo https://charts.bitnami.com/bitnami`, but you have to know `kafka-chart-name` first.
+
+To get the chart name you can run `helm search repo bitnami`. Remember? `bitnami` was how I labeled the repo I added earlier. Sad thing is, all this didn't help, still getting a bulk of charts in return
+```
+bitnami/airflow                             	24.1.2       	3.0.1        	Apache Airflow is a tool to express and execute...
+bitnami/apache                              	11.3.15      	2.4.63       	Apache HTTP Server is an open-source HTTP serve...
+bitnami/apisix                              	5.0.3        	3.12.0       	Apache APISIX is high-performance, real-time AP...
+bitnami/appsmith                            	6.0.10       	1.76.0       	Appsmith is an open source platform for buildin...
+bitnami/argo-cd                             	9.0.20       	3.0.6        	Argo CD is a continuous delivery tool for Kuber...
+bitnami/argo-workflows                      	12.0.6       	3.6.10       	Argo Workflows is meant to orchestrate Kubernet...
+bitnami/aspnet-core                         	7.0.7        	9.0.6        	ASP.NET Core is an open-source framework for we...
+....
+bitnami/wildfly                             	24.0.8       	36.0.1       	Wildfly is a lightweight, open source applicati...
+bitnami/wordpress                           	24.2.10      	6.8.1        	WordPress is the world's most popular blogging ...
+bitnami/wordpress-intel                     	2.1.31       	6.1.1        	DEPRECATED WordPress for Intel is the most popu...
+bitnami/zipkin                              	1.3.5        	3.5.1        	Zipkin is a distributed tracing system that hel...
+bitnami/zookeeper                           	13.8.3       	3.9.3        	Apache ZooKeeper provides a reliable, centraliz...
+```
+
+better grep that. Running `helm search repo bitnami | grep kafka` I get the entry I was looking for
+```
+bitnami/kafka                               	32.2.15      	4.0.0        	Apache Kafka is a distributed streaming platfor...
+```
+
+Running `helm pull bitnami/kafka` dowloads the chart as .tar.gz.
+
+Running `helm install mykafka kafka --repo bitnami --dry-run > /tmp/kafka-manifest.yaml` generates the manifest, and some note at bottom, about the chart.

@@ -48,7 +48,39 @@ spec:
 ```
 Gateway are namespaced objects.
 
-Do I have to rely on loadbalancer to reach gateway controller from outside?
+Gateway can also handle hostnames and TLS of course:
+```
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: tls-basic
+spec:
+  gatewayClassName: example
+  listeners:
+  - name: foo-https
+    protocol: HTTPS
+    port: 443
+    hostname: foo.example.com
+    tls:
+      certificateRefs:
+      - kind: Secret
+        group: ""
+        name: foo-example-com-cert
+  - name: bar-https
+    protocol: HTTPS
+    port: 443
+    hostname: bar.example.com
+    tls:
+      certificateRefs:
+      - kind: Secret
+        group: ""
+        name: bar-example-com-cert
+```
+Here you can see gateway has two listeners one for domain 'foo.example.com' and another for 'bar.example.com' configured with two different certificates, wrapped in two secrets.
+
+Do I have to rely on loadbalancer to reach gateway controller from outside? No, gateway class is a LoadBalancer.
+
+Oh! That is gross! You can get the **RIGTH** gateway api doc page [here](https://gateway-api.sigs.k8s.io/guides), which is reachable by the kubernetes's search page by looking for 'gateway api' and then click on the first link in the page, the one with text 'Gateway API'.
 
 ## Routes
 A route identify a way to forward a request hitting a gateway to a specific service in cluster.
